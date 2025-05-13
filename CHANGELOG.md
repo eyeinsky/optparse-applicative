@@ -1,3 +1,56 @@
+## Version 0.19.0.0
+
+- Add `parserOptionGroup` for grouping Options together, similar to command
+  groups. Requires the breaking change of adding the `propGroup :: OptGroup`
+  field to `OptProperties`.
+
+## Version 0.18.1.0 (29 May 2023)
+
+- Change pretty printer layout algorithm used.
+
+  The layoutSmart algorithm appears to be extremely slow with some command line
+  sets, to the point where the program appears to hang.
+
+  Fixes issues:
+    * \# 476 - Stack executable 'hangs' with 0.17.1 and 0.18.0.
+
+- Render help text with `AnsiStyle` aware rendering functions.
+
+## Version 0.18.0.0 (22 May 2023)
+
+- Move to 'prettyprinter` library for pretty printing.
+
+  This is a potentially breaking change when one uses the '*Doc' family of functions
+  (like `headerDoc`) from `Options.Applicative`. However, as versions of
+  'ansi-wl-pprint > 1.0' export a compatible `Doc` type, this can be mitigated by
+  using a recent version.
+
+  One can also either import directly from `Options.Applicative.Help` or from the
+  `Prettyprinter` module of 'prettyprinter'.
+
+- Allow commands to be disambiguated in a similar manner to flags when the
+  `disambiguate` modifier is used.
+
+  This is a potentially breaking change as the internal `CmdReader` constructor
+  has been adapted so it is able to be inspected to a greater degree to support
+  finding prefix matches.
+
+## Version 0.17.1.0 (22 May 2023)
+
+- Widen bounds for `ansi-wl-pprint`. This supports the use of `prettyprinter`
+  in a non-breaking way, as the `ansi-wl-pprint > 1.0` support the newer
+  library.
+
+- Export `helpIndent` from `Options.Applicative`.
+
+- Export completion script generators from `Options.Applicative.BashCompletion`.
+
+- Add `simpleVersioner` utility for adding a '--version' option to a parser.
+
+- Improve documentation.
+
+- Drop support for GHC 7.0 and 7.2.
+
 ## Version 0.17.0.0 (1 Feb 2022)
 
 - Make tabulation width configurable in usage texts.

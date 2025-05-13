@@ -49,6 +49,7 @@ module Options.Applicative.Builder (
   completer,
   idm,
   mappend,
+  parserOptionGroup,
 
   -- * Readers
   --
@@ -89,6 +90,7 @@ module Options.Applicative.Builder (
   helpLongEquals,
   helpShowGlobals,
   helpIndent,
+  briefHangPoint,
   prefs,
   defaultPrefs,
 
@@ -107,8 +109,8 @@ module Options.Applicative.Builder (
   ) where
 
 import Control.Applicative
-#if __GLASGOW_HASKELL__ <= 802
-import Data.Semigroup hiding (option)
+#if __GLASGOW_HASKELL__ < 804
+import Data.Semigroup hiding (Option, option)
 #endif
 import Data.String (fromString, IsString)
 
@@ -118,6 +120,7 @@ import Options.Applicative.Common
 import Options.Applicative.Types
 import Options.Applicative.Help.Pretty
 import Options.Applicative.Help.Chunk
+import Options.Applicative.Internal (mapParserOptions)
 
 -- Readers --
 
@@ -189,7 +192,7 @@ showDefault = showDefaultWith show
 help :: String -> Mod f a
 help s = optionMod $ \p -> p { propHelp = paragraph s }
 
--- | Specify the help text for an option as a 'Text.PrettyPrint.ANSI.Leijen.Doc'
+-- | Specify the help text for an option as a 'Prettyprinter.Doc AnsiStyle'
 -- value.
 helpDoc :: Maybe Doc -> Mod f a
 helpDoc doc = optionMod $ \p -> p { propHelp = Chunk doc }
@@ -215,7 +218,7 @@ hidden = optionMod $ \p ->
 -- | Apply a function to the option description in the usage text.
 --
 -- > import Options.Applicative.Help
--- > flag' () (short 't' <> style bold)
+-- > flag' () (short 't' <> style (annotate bold))
 --
 -- /NOTE/: This builder is more flexible than its name and example
 -- allude. One of the motivating examples for its addition was to
@@ -282,8 +285,8 @@ subparser :: Mod CommandFields a -> Parser a
 subparser m = mkParser d g rdr
   where
     Mod _ d g = metavar "COMMAND" `mappend` m
-    (groupName, cmds, subs) = mkCommand m
-    rdr = CmdReader groupName cmds subs
+    (groupName, cmds) = mkCommand m
+    rdr = CmdReader groupName cmds
 
 -- | Builder for an argument parser.
 argument :: ReadM a -> Mod ArgumentFields a -> Parser a
@@ -379,6 +382,56 @@ option r m = mkParser d g rdr
     crdr = CReader (optCompleter fields) r
     rdr = OptReader (optNames fields) crdr (optNoArgError fields)
 
+-- | Prepends a group to 'OptProperties'. Nested groups are indented e.g.
+--
+-- @
+--   optPropertiesGroup "Group Outer" (optPropertiesGroup "Group Inner" o)
+-- @
+--
+-- will render as:
+--
+-- @
+--  Group Outer
+--  - Group Inner
+--    ...
+-- @
+optPropertiesGroup :: String -> OptProperties -> OptProperties
+optPropertiesGroup g o = o { propGroup = OptGroup (g : oldGroup) }
+  where
+    OptGroup oldGroup = propGroup o
+
+-- | Prepends a group per 'optPropertiesGroup'.
+optionGroup :: String -> Option a -> Option a
+optionGroup grp o = o { optProps = props' }
+  where
+    props' = optPropertiesGroup grp (optProps o)
+
+-- | Group options together under a common heading in the help text.
+--
+-- For example, if we have:
+--
+-- > Args
+-- >   <$> parseMain
+-- >   <*> parserOptionGroup "Group A" parseA
+-- >   <*> parserOptionGroup "Group B" parseB
+-- >   <*> parseOther
+--
+-- Then the help page will look like:
+--
+-- > Available options:
+-- >   <main options>
+-- >   <other options>
+-- >
+-- > Group A
+-- >   <A options>
+-- >
+-- > Group B
+-- >   <B options>
+--
+-- @since 0.19.0.0
+parserOptionGroup :: String -> Parser a -> Parser a
+parserOptionGroup g = mapParserOptions (optionGroup g)
+
 -- | Modifier for 'ParserInfo'.
 newtype InfoMod a = InfoMod
   { applyInfoMod :: ParserInfo a -> ParserInfo a }
@@ -402,7 +455,7 @@ briefDesc = InfoMod $ \i -> i { infoFullDesc = False }
 header :: String -> InfoMod a
 header s = InfoMod $ \i -> i { infoHeader = paragraph s }
 
--- | Specify a header for this parser as a 'Text.PrettyPrint.ANSI.Leijen.Doc'
+-- | Specify a header for this parser as a 'Prettyprinter.Doc AnsiStyle'
 -- value.
 headerDoc :: Maybe Doc -> InfoMod a
 headerDoc doc = InfoMod $ \i -> i { infoHeader = Chunk doc }
@@ -411,7 +464,7 @@ headerDoc doc = InfoMod $ \i -> i { infoHeader = Chunk doc }
 footer :: String -> InfoMod a
 footer s = InfoMod $ \i -> i { infoFooter = paragraph s }
 
--- | Specify a footer for this parser as a 'Text.PrettyPrint.ANSI.Leijen.Doc'
+-- | Specify a footer for this parser as a 'Prettyprinter.Doc AnsiStyle'
 -- value.
 footerDoc :: Maybe Doc -> InfoMod a
 footerDoc doc = InfoMod $ \i -> i { infoFooter = Chunk doc }
@@ -420,7 +473,7 @@ footerDoc doc = InfoMod $ \i -> i { infoFooter = Chunk doc }
 progDesc :: String -> InfoMod a
 progDesc s = InfoMod $ \i -> i { infoProgDesc = paragraph s }
 
--- | Specify a short program description as a 'Text.PrettyPrint.ANSI.Leijen.Doc'
+-- | Specify a short program description as a 'Prettyprinter.Doc AnsiStyle'
 -- value.
 progDescDoc :: Maybe Doc -> InfoMod a
 progDescDoc doc = InfoMod $ \i -> i { infoProgDesc = Chunk doc }
@@ -530,6 +583,9 @@ helpShowGlobals = PrefsMod $ \p -> p { prefHelpShowGlobal = True }
 helpIndent :: Int -> PrefsMod
 helpIndent w = PrefsMod $ \p -> p { prefTabulateFill = w }
 
+-- | Set the width at which to hang the brief help text.
+briefHangPoint :: Int -> PrefsMod
+briefHangPoint php = PrefsMod $ \p -> p { prefBriefHangPoint = php }
 
 
 -- | Create a `ParserPrefs` given a modifier
@@ -545,7 +601,8 @@ prefs m = applyPrefsMod m base
       , prefColumns = 80
       , prefHelpLongEquals = False
       , prefHelpShowGlobal = False
-      , prefTabulateFill = 24 }
+      , prefTabulateFill = 24
+      , prefBriefHangPoint = 35 }
 
 -- Convenience shortcuts
 

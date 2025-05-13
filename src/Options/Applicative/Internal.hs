@@ -1,3 +1,5 @@
+{-# LANGUAGE RankNTypes #-}
+
 module Options.Applicative.Internal
   ( P
   , MonadP(..)
@@ -18,11 +20,14 @@ module Options.Applicative.Internal
   , ListT
   , takeListT
   , runListT
+  , hoistList
 
   , NondetT
   , cut
   , (<!>)
   , disamb
+
+  , mapParserOptions
   ) where
 
 import Control.Applicative
@@ -34,6 +39,7 @@ import Control.Monad.Trans.Except
 import Control.Monad.Trans.Reader
   (mapReaderT, runReader, runReaderT, Reader, ReaderT, ask)
 import Control.Monad.Trans.State (StateT, get, put, modify, evalStateT, runStateT)
+
 
 import Options.Applicative.Types
 
@@ -172,9 +178,6 @@ bimapTStep :: (a -> b) -> (x -> y) -> TStep a x -> TStep b y
 bimapTStep _ _ TNil = TNil
 bimapTStep f g (TCons a x) = TCons (f a) (g x)
 
-hoistList :: Monad m => [a] -> ListT m a
-hoistList = foldr (\x xt -> ListT (return (TCons x xt))) mzero
-
 takeListT :: Monad m => Int -> ListT m a -> ListT m a
 takeListT 0 = const mzero
 takeListT n = ListT . liftM (bimapTStep id (takeListT (n - 1))) . stepListT
@@ -192,7 +195,7 @@ instance Monad m => Functor (ListT m) where
          . stepListT
 
 instance Monad m => Applicative (ListT m) where
-  pure = hoistList . pure
+  pure a = ListT (return (TCons a mzero))
   (<*>) = ap
 
 instance Monad m => Monad (ListT m) where
@@ -263,3 +266,21 @@ disamb allow_amb xs = do
   return $ case xs' of
     [x] -> Just x
     _   -> Nothing
+
+hoistList :: Alternative m => [a] -> m a
+hoistList = foldr cons empty
+  where
+    cons x xs = pure x <|> xs
+
+-- | Maps an Option modifying function over the Parser.
+--
+-- @since 0.19.0.0
+mapParserOptions :: (forall x. Option x -> Option x) -> Parser a -> Parser a
+mapParserOptions f = go
+  where
+    go :: forall y. Parser y -> Parser y
+    go (NilP x) = NilP x
+    go (OptP o) = OptP (f o)
+    go (MultP p1 p2) = MultP (go p1) (go p2)
+    go (AltP p1 p2) = AltP (go p1) (go p2)
+    go (BindP p1 p2) = BindP (go p1) (\x -> go (p2 x))

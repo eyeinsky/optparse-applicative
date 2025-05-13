@@ -1,26 +1,41 @@
 {-# LANGUAGE CPP #-}
 module Options.Applicative.Help.Pretty
-  ( module Text.PrettyPrint.ANSI.Leijen
+  ( module Prettyprinter
+  , module Prettyprinter.Render.Terminal
+  , Doc
+  , SimpleDoc
+
   , (.$.)
+  , (</>)
+
   , groupOrNestLine
   , altSep
   , hangAtIfOver
+
+  , prettyString
   ) where
 
-import           Control.Applicative
 #if !MIN_VERSION_base(4,11,0)
-import           Data.Semigroup ((<>))
+import           Data.Semigroup ((<>), mempty)
 #endif
+import qualified Data.Text.Lazy as Lazy
 
-import           Text.PrettyPrint.ANSI.Leijen hiding ((<$>), (<>), columns)
-import           Text.PrettyPrint.ANSI.Leijen.Internal (Doc (..), flatten)
-import qualified Text.PrettyPrint.ANSI.Leijen as PP
+import           Prettyprinter hiding (Doc)
+import qualified Prettyprinter as PP
+import           Prettyprinter.Render.Terminal
 
 import           Prelude
 
-(.$.) :: Doc -> Doc -> Doc
-(.$.) = (PP.<$>)
+type Doc = PP.Doc AnsiStyle
+type SimpleDoc = SimpleDocStream AnsiStyle
 
+linebreak :: Doc
+linebreak = flatAlt line mempty
+
+(.$.) :: Doc -> Doc -> Doc
+x .$. y = x <> line <> y
+(</>) :: Doc -> Doc -> Doc
+x </> y = x <> softline <> y
 
 -- | Apply the function if we're not at the
 --   start of our nesting level.
@@ -38,12 +53,11 @@ ifAtRoot =
 --   start of our nesting level.
 ifElseAtRoot :: (Doc -> Doc) -> (Doc -> Doc) -> Doc -> Doc
 ifElseAtRoot f g doc =
-  Nesting $ \i ->
-    Column $ \j ->
+  nesting $ \i ->
+    column $ \j ->
       if i == j
         then f doc
         else g doc
-
 
 -- | Render flattened text on this line, or start
 --   a new line before rendering any text.
@@ -52,9 +66,7 @@ ifElseAtRoot f g doc =
 --   group.
 groupOrNestLine :: Doc -> Doc
 groupOrNestLine =
-  Union
-    <$> flatten
-    <*> ifNotAtRoot (line <>) . nest 2
+  group . ifNotAtRoot (linebreak <>) . nest 2
 
 
 -- | Separate items in an alternative with a pipe.
@@ -69,7 +81,7 @@ groupOrNestLine =
 --   next line.
 altSep :: Doc -> Doc -> Doc
 altSep x y =
-  group (x <+> char '|' <> line) <//> y
+  group (x <+> pretty '|' <> line) <> group linebreak <>  y
 
 
 -- | Printer hacks to get nice indentation for long commands
@@ -85,8 +97,27 @@ altSep x y =
 --   the starting column, and it won't be indented more.
 hangAtIfOver :: Int -> Int -> Doc -> Doc
 hangAtIfOver i j d =
-  Column $ \k ->
+  column $ \k ->
     if k <= j then
       align d
     else
       linebreak <> ifAtRoot (indent i) d
+
+
+renderPretty :: Double -> Int -> Doc -> SimpleDocStream AnsiStyle
+renderPretty ribbonFraction lineWidth
+  = layoutPretty LayoutOptions
+      { layoutPageWidth = AvailablePerLine lineWidth ribbonFraction }
+
+prettyString :: Double -> Int -> Doc -> String
+prettyString ribbonFraction lineWidth
+  = streamToString
+  . renderPretty ribbonFraction lineWidth
+
+streamToString :: SimpleDocStream AnsiStyle -> String
+streamToString sdoc =
+  let
+    rendered =
+      Prettyprinter.Render.Terminal.renderLazy sdoc
+  in
+    Lazy.unpack rendered

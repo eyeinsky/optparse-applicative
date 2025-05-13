@@ -7,7 +7,7 @@ module Options.Applicative (
   -- See <https://github.com/pcapriotti/optparse-applicative> for a tutorial,
   -- and a general introduction to applicative option parsers.
   --
-  -- See the sections below for more detail
+  -- See the sections below for more detail.
 
   -- * Exported modules
   --
@@ -18,7 +18,7 @@ module Options.Applicative (
   --
   -- | A 'Parser' is the core type in optparse-applicative. A value of type
   -- @Parser a@ represents a specification for a set of options, which will
-  -- yield a value of type a when the command line arguments are successfully
+  -- yield a value of type @a@ when the command line arguments are successfully
   -- parsed.
   --
   -- There are several types of primitive 'Parser'.
@@ -74,13 +74,14 @@ module Options.Applicative (
   abortOption,
   infoOption,
   helper,
+  simpleVersioner,
 
   -- ** Modifiers
   --
   -- | 'Parser' builders take a modifier, which represents a modification of the
   -- properties of an option, and can be composed as a monoid.
   --
-  -- Contraints are often used to ensure that the modifiers can be sensibly applied.
+  -- Constraints are often used to ensure that the modifiers can be sensibly applied.
   -- For example, positional arguments can't be specified by long or short names,
   -- so the 'HasName' constraint is used to ensure we have a flag or option.
   Mod,
@@ -104,6 +105,7 @@ module Options.Applicative (
   completer,
   idm,
   mappend,
+  parserOptionGroup,
 
   OptionFields,
   FlagFields,
@@ -114,18 +116,20 @@ module Options.Applicative (
   HasCompleter,
   HasValue,
   HasMetavar,
+
   -- ** Readers
   --
   -- | A reader is used by the 'option' and 'argument' builders to parse
   -- the data passed by the user on the command line into a data type.
   --
   -- The most common are 'str' which is used for 'String' like types,
-  -- including 'ByteString' and 'Text'; and 'auto', which uses the 'Read'
-  -- typeclass, and is good for simple types like 'Int' or 'Double'.
+  -- including t'Data.ByteString.ByteString' and t'Data.Text.Text'; and 'auto',
+  -- which uses the 'Read' typeclass, and is good for simple types like 'Int' or
+  -- 'Double'.
   --
   -- More complex types can use the 'eitherReader' or 'maybeReader'
   -- functions to pattern match or use a more expressive parser like a
-  -- member of the 'Parsec' family.
+  -- member of the @Parsec@ family.
   ReadM,
 
   auto,
@@ -197,6 +201,8 @@ module Options.Applicative (
   columns,
   helpLongEquals,
   helpShowGlobals,
+  helpIndent,
+  briefHangPoint,
   defaultPrefs,
 
   -- * Completions

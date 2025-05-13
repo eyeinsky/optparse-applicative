@@ -6,6 +6,7 @@ module Options.Applicative.Extra (
   helper,
   helperWith,
   hsubparser,
+  simpleVersioner,
   execParser,
   customExecParser,
   execParserPure,
@@ -88,10 +89,23 @@ hsubparser :: Mod CommandFields a -> Parser a
 hsubparser m = mkParser d g rdr
   where
     Mod _ d g = metavar "COMMAND" `mappend` m
-    (groupName, cmds, subs) = mkCommand m
-    rdr = CmdReader groupName cmds (fmap add_helper . subs)
+    (groupName, cmds) = mkCommand m
+    rdr = CmdReader groupName ((fmap . fmap) add_helper cmds)
     add_helper pinfo = pinfo
       { infoParser = infoParser pinfo <**> helper }
+
+-- | A hidden \"--version\" option that displays the version.
+--
+-- > opts :: ParserInfo Sample
+-- > opts = info (sample <**> simpleVersioner "v1.2.3") mempty
+simpleVersioner :: String -- ^ Version string to be shown
+                -> Parser (a -> a)
+simpleVersioner version = infoOption version $
+  mconcat
+    [ long "version"
+    , help "Show version information"
+    , hidden
+    ]
 
 -- | Run a program description.
 --
@@ -153,7 +167,7 @@ execParserPure pprefs pinfo args =
 --
 -- This function can be used, for example, to show the help text for a parser:
 --
--- @handleParseResult . Failure $ parserFailure pprefs pinfo ShowHelpText mempty@
+-- @handleParseResult . Failure $ parserFailure pprefs pinfo (ShowHelpText Nothing) mempty@
 parserFailure :: ParserPrefs -> ParserInfo a
               -> ParseError -> [Context]
               -> ParserFailure ParserHelp
@@ -303,10 +317,10 @@ parserFailure pprefs pinfo msg ctx0 = ParserFailure $ \progn ->
               OptReader ns _ _ -> fmap showOption ns
               FlagReader ns _  -> fmap showOption ns
               ArgReader _      -> []
-              CmdReader _ ns _  | argumentIsUnreachable reachability
+              CmdReader _ ns    | argumentIsUnreachable reachability
                                -> []
                                 | otherwise
-                               -> ns
+                               -> fst <$> ns
       _
         -> mempty
 

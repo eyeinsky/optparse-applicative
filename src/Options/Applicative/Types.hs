@@ -11,6 +11,7 @@ module Options.Applicative.Types (
 
   OptReader(..),
   OptProperties(..),
+  OptGroup(..),
   OptVisibility(..),
   Backtracking(..),
   ReadM(..),
@@ -126,7 +127,8 @@ data ParserPrefs = ParserPrefs
   , prefHelpShowGlobal :: Bool    -- ^ when displaying subparsers' usage help,
                                   -- show parent options under a "global options"
                                   -- section (default: False)
-  , prefTabulateFill ::Int       -- ^ Indentation width for tables
+  , prefTabulateFill ::Int        -- ^ Indentation width for tables
+  , prefBriefHangPoint :: Int     -- ^ Width at which to hang the brief description
   } deriving (Eq, Show)
 
 data OptName = OptShort !Char
@@ -147,6 +149,12 @@ data OptVisibility
   | Visible           -- ^ visible both in the full and brief descriptions
   deriving (Eq, Ord, Show)
 
+-- | Groups for optionals. Can be multiple in the case of nested groups.
+--
+-- @since 0.19.0.0
+newtype OptGroup = OptGroup [String]
+  deriving (Eq, Ord, Show)
+
 -- | Specification for an individual parser option.
 data OptProperties = OptProperties
   { propVisibility :: OptVisibility       -- ^ whether this flag is shown in the brief description
@@ -155,17 +163,23 @@ data OptProperties = OptProperties
   , propShowDefault :: Maybe String       -- ^ what to show in the help text as the default
   , propShowGlobal :: Bool                -- ^ whether the option is presented in global options text
   , propDescMod :: Maybe ( Doc -> Doc )   -- ^ a function to run over the brief description
+  , propGroup :: OptGroup
+    -- ^ optional group(s)
+    --
+    -- @since 0.19.0.0
   }
 
 instance Show OptProperties where
-  showsPrec p (OptProperties pV pH pMV pSD pSG _)
+  showsPrec p (OptProperties pV pH pMV pSD pSG _ pGrp)
     = showParen (p >= 11)
     $ showString "OptProperties { propVisibility = " . shows pV
     . showString ", propHelp = " . shows pH
     . showString ", propMetaVar = " . shows pMV
     . showString ", propShowDefault = " . shows pSD
     . showString ", propShowGlobal = " . shows pSG
-    . showString ", propDescMod = _ }"
+    . showString ", propDescMod = _"
+    . showString ", propGroup = " . shows pGrp
+    . showString "}"
 
 -- | A single option of a parser.
 data Option a = Option
@@ -175,8 +189,9 @@ data Option a = Option
 
 data SomeParser = forall a . SomeParser (Parser a)
 
--- | Subparser context, containing the 'name' of the subparser and its parser info.
---   Used by parserFailure to display relevant usage information when parsing inside a subparser fails.
+-- | Subparser context, containing the name of the subparser and its parser info.
+--   Used by 'Options.Applicative.Extra.parserFailure' to display relevant usage
+--   information when parsing inside a subparser fails.
 data Context = forall a. Context String (ParserInfo a)
 
 instance Show (Option a) where
@@ -242,16 +257,16 @@ data OptReader a
   -- ^ flag reader
   | ArgReader (CReader a)
   -- ^ argument reader
-  | CmdReader (Maybe String) [String] (String -> Maybe (ParserInfo a))
+  | CmdReader (Maybe String) [(String, ParserInfo a)]
   -- ^ command reader
 
 instance Functor OptReader where
   fmap f (OptReader ns cr e) = OptReader ns (fmap f cr) e
   fmap f (FlagReader ns x) = FlagReader ns (f x)
   fmap f (ArgReader cr) = ArgReader (fmap f cr)
-  fmap f (CmdReader n cs g) = CmdReader n cs ((fmap . fmap) f . g)
+  fmap f (CmdReader n cs) = CmdReader n ((fmap . fmap . fmap) f cs)
 
--- | A @Parser a@ is an option parser returning a value of type 'a'.
+-- | A @Parser a@ is an option parser returning a value of type @a@.
 data Parser a
   = NilP (Maybe a)
   | OptP (Option a)
@@ -342,7 +357,7 @@ instance Functor ParserFailure where
   fmap f (ParserFailure err) = ParserFailure $ \progn ->
     let (h, exit, cols) = err progn in (f h, exit, cols)
 
--- | Result of 'execParserPure'.
+-- | Result of 'Options.Applicative.execParserPure'.
 data ParserResult a
   = Success a
   | Failure (ParserFailure ParserHelp)

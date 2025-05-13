@@ -4,7 +4,11 @@
 -- <http://github.com/pcapriotti/optparse-applicative/wiki/Bash-Completion the wiki>
 -- for more information on bash completion.
 module Options.Applicative.BashCompletion
-  ( bashCompletionParser
+  ( bashCompletionParser,
+
+    bashCompletionScript,
+    fishCompletionScript,
+    zshCompletionScript,
   ) where
 
 import Control.Applicative
@@ -34,11 +38,15 @@ data Richness
 bashCompletionParser :: ParserInfo a -> ParserPrefs -> Parser CompletionResult
 bashCompletionParser pinfo pprefs = complParser
   where
-    failure opts = CompletionResult
-      { execCompletion = \progn -> unlines <$> opts progn }
+    returnCompletions opts =
+      CompletionResult $
+        \progn -> unlines <$> opts progn
+
+    scriptRequest =
+      CompletionResult . fmap pure
 
     complParser = asum
-      [ failure <$>
+      [ returnCompletions <$>
         (  bashCompletionQuery pinfo pprefs
         -- To get rich completions, one just needs the first
         -- command. To customise the lengths, use either of
@@ -53,15 +61,13 @@ bashCompletionParser pinfo pprefs = complParser
         <*> (many . strOption) (long "bash-completion-word"
                                   `mappend` internal)
         <*> option auto (long "bash-completion-index" `mappend` internal) )
-      , failure <$>
-          (bashCompletionScript <$>
-            strOption (long "bash-completion-script" `mappend` internal))
-      , failure <$>
-          (fishCompletionScript <$>
-            strOption (long "fish-completion-script" `mappend` internal))
-      , failure <$>
-          (zshCompletionScript <$>
-            strOption (long "zsh-completion-script" `mappend` internal))
+
+      , scriptRequest . bashCompletionScript <$>
+            strOption (long "bash-completion-script" `mappend` internal)
+      , scriptRequest . fishCompletionScript <$>
+            strOption (long "fish-completion-script" `mappend` internal)
+      , scriptRequest . zshCompletionScript <$>
+            strOption (long "zsh-completion-script" `mappend` internal)
       ]
 
 bashCompletionQuery :: ParserInfo a -> ParserPrefs -> Richness -> [String] -> Int -> String -> IO [String]
@@ -107,11 +113,11 @@ bashCompletionQuery pinfo pprefs richness ws i _ = case runCompletion compl ppre
         -> return []
          | otherwise
         -> run_completer (crCompleter rdr)
-      CmdReader _ ns p
+      CmdReader _ ns
          | argumentIsUnreachable reachability
         -> return []
          | otherwise
-        -> return . add_cmd_help p $ filter_names ns
+        -> return . with_cmd_help $ filter (is_completion . fst) ns
 
     -- When doing enriched completions, add any help specified
     -- to the completion variables (tab separated).
@@ -126,29 +132,27 @@ bashCompletionQuery pinfo pprefs richness ws i _ = case runCompletion compl ppre
 
     -- When doing enriched completions, add the command description
     -- to the completion variables (tab separated).
-    add_cmd_help :: Functor f => (String -> Maybe (ParserInfo a)) -> f String -> f String
-    add_cmd_help p = case richness of
-      Standard ->
-        id
-      Enriched _ len ->
-        fmap $ \cmd ->
-          let h = p cmd >>= unChunk . infoProgDesc
-          in  maybe cmd (\h' -> cmd ++ "\t" ++ render_line len h') h
+    with_cmd_help :: Functor f => f (String, ParserInfo a) -> f String
+    with_cmd_help =
+      case richness of
+        Standard ->
+          fmap fst
+        Enriched _ len ->
+          fmap $ \(cmd, cmdInfo) ->
+            let h = unChunk (infoProgDesc cmdInfo)
+            in  maybe cmd (\h' -> cmd ++ "\t" ++ render_line len h') h
 
     show_names :: [OptName] -> [String]
-    show_names = filter_names . map showOption
+    show_names = filter is_completion . map showOption
 
     -- We only want to show a single line in the completion results description.
     -- If there was a line break, it would come across as a different completion
     -- possibility.
     render_line :: Int -> Doc -> String
-    render_line len doc = case lines (displayS (renderPretty 1 len doc) "") of
+    render_line len doc = case lines (prettyString 1 len doc) of
       [] -> ""
       [x] -> x
       x : _ -> x ++ "..."
-
-    filter_names :: [String] -> [String]
-    filter_names = filter is_completion
 
     run_completer :: Completer -> IO [String]
     run_completer c = runCompleter c (fromMaybe "" (listToMaybe ws''))
@@ -161,8 +165,9 @@ bashCompletionQuery pinfo pprefs richness ws i _ = case runCompletion compl ppre
         w:_ -> isPrefixOf w
         _ -> const True
 
-bashCompletionScript :: String -> String -> IO [String]
-bashCompletionScript prog progn = return
+-- | Generated bash shell completion script
+bashCompletionScript :: String -> String -> String
+bashCompletionScript prog progn = unlines
   [ "_" ++ progn ++ "()"
   , "{"
   , "    local CMDLINE"
@@ -196,8 +201,10 @@ words.
 
 Tab characters separate items from descriptions.
 -}
-fishCompletionScript :: String -> String -> IO [String]
-fishCompletionScript prog progn = return
+
+-- | Generated fish shell completion script 
+fishCompletionScript :: String -> String -> String
+fishCompletionScript prog progn = unlines
   [ " function _" ++ progn
   , "    set -l cl (commandline --tokenize --current-process)"
   , "    # Hack around fish issue #3934"
@@ -219,8 +226,9 @@ fishCompletionScript prog progn = return
   , "complete --no-files --command " ++ progn ++ " --arguments '(_"  ++ progn ++  ")'"
   ]
 
-zshCompletionScript :: String -> String -> IO [String]
-zshCompletionScript prog progn = return
+-- | Generated zsh shell completion script
+zshCompletionScript :: String -> String -> String
+zshCompletionScript prog progn = unlines
   [ "#compdef " ++ progn
   , ""
   , "local request"

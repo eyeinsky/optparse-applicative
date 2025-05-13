@@ -10,9 +10,16 @@ import qualified Examples.Cabal as Cabal
 import qualified Examples.Alternatives as Alternatives
 import qualified Examples.Formatting as Formatting
 import qualified Examples.LongSub as LongSub
+import qualified Examples.ParserGroup.AllGrouped as ParserGroup.AllGrouped
+import qualified Examples.ParserGroup.Basic as ParserGroup.Basic
+import qualified Examples.ParserGroup.CommandGroups as ParserGroup.CommandGroups
+import qualified Examples.ParserGroup.DuplicateCommandGroups as ParserGroup.DuplicateCommandGroups
+import qualified Examples.ParserGroup.Duplicates as ParserGroup.Duplicates
+import qualified Examples.ParserGroup.Nested as ParserGroup.Nested
 
 import           Control.Applicative
 import           Control.Monad
+import           Data.Function (on)
 import           Data.List hiding (group)
 import           Data.List.NonEmpty (NonEmpty ((:|)))
 import           Data.Semigroup hiding (option)
@@ -28,7 +35,7 @@ import qualified Options.Applicative.NonEmpty
 
 
 import qualified Options.Applicative.Help as H
-import           Options.Applicative.Help.Pretty (Doc, SimpleDoc(..))
+import           Options.Applicative.Help.Pretty (Doc)
 import qualified Options.Applicative.Help.Pretty as Doc
 import           Options.Applicative.Help.Chunk
 import           Options.Applicative.Help.Levenshtein
@@ -317,6 +324,49 @@ prop_ambiguous = once $
       i = info p idm
       result = execParserPure (prefs disambiguate) i ["--ba"]
   in  assertError result (\_ -> property succeeded)
+
+
+prop_disambiguate_in_same_subparsers :: Property
+prop_disambiguate_in_same_subparsers = once $
+  let p0 = subparser (command "oranges" (info (pure "oranges") idm) <> command "apples" (info (pure "apples") idm) <> metavar "B")
+      i = info (p0 <**> helper) idm
+      result = execParserPure (prefs disambiguate) i ["orang"]
+  in  assertResult result ((===) "oranges")
+
+prop_disambiguate_commands_in_separate_subparsers :: Property
+prop_disambiguate_commands_in_separate_subparsers = once $
+  let p2 = subparser (command "oranges" (info (pure "oranges") idm)  <> metavar "B")
+      p1 = subparser (command "apples" (info (pure "apples") idm)  <> metavar "C")
+      p0 = p1 <|> p2
+      i = info (p0 <**> helper) idm
+      result = execParserPure (prefs disambiguate) i ["orang"]
+  in  assertResult result ((===) "oranges")
+
+prop_fail_ambiguous_commands_in_same_subparser :: Property
+prop_fail_ambiguous_commands_in_same_subparser = once $
+  let p0 = subparser (command "oranges" (info (pure ()) idm) <> command "orangutans" (info (pure ()) idm) <> metavar "B")
+      i = info (p0 <**> helper) idm
+      result = execParserPure (prefs disambiguate) i ["orang"]
+  in  assertError result (\_ -> property succeeded)
+
+prop_fail_ambiguous_commands_in_separate_subparser :: Property
+prop_fail_ambiguous_commands_in_separate_subparser = once $
+  let p2 = subparser (command "oranges" (info (pure ()) idm)  <> metavar "B")
+      p1 = subparser (command "orangutans" (info (pure ()) idm)  <> metavar "C")
+      p0 = p1 <|> p2
+      i = info (p0 <**> helper) idm
+      result = execParserPure (prefs disambiguate) i ["orang"]
+  in  assertError result (\_ -> property succeeded)
+
+prop_without_disambiguation_same_named_commands_should_parse_in_order :: Property
+prop_without_disambiguation_same_named_commands_should_parse_in_order = once $
+  let p3 = subparser (command "b" (info (pure ()) idm)  <> metavar "B")
+      p2 = subparser (command "a" (info (pure ()) idm)  <> metavar "B")
+      p1 = subparser (command "a" (info (pure ()) idm)  <> metavar "C")
+      p0 = (,,) <$> p1 <*> p2 <*> p3
+      i = info (p0 <**> helper) idm
+      result = execParserPure defaultPrefs i ["b", "a", "a"]
+  in  assertResult result ((===) ((), (), ()))
 
 prop_completion :: Property
 prop_completion = once . ioProperty $
@@ -903,16 +953,38 @@ prop_long_command_line_flow = once $
             , "to fit the size of the terminal" ]) )
   in checkHelpTextWith ExitSuccess (prefs (columns 50)) "formatting-long-subcommand" i ["hello-very-long-sub", "--help"]
 
+prop_parser_group_basic :: Property
+prop_parser_group_basic = once $
+  checkHelpText "parser_group_basic" ParserGroup.Basic.opts ["--help"]
+
+prop_parser_group_command_groups :: Property
+prop_parser_group_command_groups = once $
+  checkHelpText "parser_group_command_groups" ParserGroup.CommandGroups.opts ["--help"]
+
+prop_parser_group_duplicate_command_groups :: Property
+prop_parser_group_duplicate_command_groups = once $
+  checkHelpText "parser_group_duplicate_command_groups" ParserGroup.DuplicateCommandGroups.opts ["--help"]
+
+prop_parser_group_duplicates :: Property
+prop_parser_group_duplicates = once $
+  checkHelpText "parser_group_duplicates" ParserGroup.Duplicates.opts ["--help"]
+
+prop_parser_group_all_grouped :: Property
+prop_parser_group_all_grouped = once $
+  checkHelpText "parser_group_all_grouped" ParserGroup.AllGrouped.opts ["--help"]
+
+prop_parser_group_nested :: Property
+prop_parser_group_nested = once $
+  checkHelpText "parser_group_nested" ParserGroup.Nested.opts ["--help"]
 
 ---
 
 deriving instance Arbitrary a => Arbitrary (Chunk a)
-deriving instance Eq SimpleDoc
-deriving instance Show SimpleDoc
 
-equalDocs :: Float -> Int -> Doc -> Doc -> Property
-equalDocs f w d1 d2 = Doc.renderPretty f w d1
-                  === Doc.renderPretty f w d2
+
+equalDocs :: Double -> Int -> Doc -> Doc -> Property
+equalDocs f w d1 d2 = Doc.prettyString f w d1
+                  === Doc.prettyString f w d2
 
 prop_listToChunk_1 :: [String] -> Property
 prop_listToChunk_1 xs = isEmpty (listToChunk xs) === null xs
@@ -926,10 +998,10 @@ prop_extractChunk_1 x = extractChunk (pure x) === x
 prop_extractChunk_2 :: Chunk String -> Property
 prop_extractChunk_2 x = extractChunk (fmap pure x) === x
 
-prop_stringChunk_1 :: Positive Float -> Positive Int -> String -> Property
+prop_stringChunk_1 :: Positive Double -> Positive Int -> String -> Property
 prop_stringChunk_1 (Positive f) (Positive w) s =
   equalDocs f w (extractChunk (stringChunk s))
-                (Doc.string s)
+                (Doc.pretty s)
 
 prop_stringChunk_2 :: String -> Property
 prop_stringChunk_2 s = isEmpty (stringChunk s) === null s

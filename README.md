@@ -1,7 +1,6 @@
 # optparse-applicative
 
 [![Continuous Integration status][status-png]][status]
-[![Hackage matrix][hackage-matrix-png]][hackage-matrix]
 [![Hackage page (downloads and API reference)][hackage-png]][hackage]
 [![Hackage-Deps][hackage-deps-png]][hackage-deps]
 
@@ -44,6 +43,7 @@ context-sensitive bash, zsh, and fish completions.
 - [Applicative Do](#applicative-do)
 - [FAQ](#faq)
 - [How it works](#how-it-works)
+- [Tutorials](#tutorials)
 
 ## Introduction
 
@@ -302,7 +302,14 @@ Having `Applicative` and `Alternative` instances, optparse-applicative
 parsers are also able to be composed with standard combinators. For
 example: `optional :: Alternative f => f a -> f (Maybe a)` will
 mean the user is not required to provide input for the affected
-`Parser`.
+`Parser`. For example, the following parser will return `Nothing`
+instead of failing if the user doesn't supply an `output` option:
+
+```haskell
+optional $ strOption
+  ( long "output"
+ <> metavar "DIRECTORY" )
+```
 
 ### Running parsers
 
@@ -503,7 +510,7 @@ number of arguments, combine the `argument` builder with either the
 `many` or `some` combinator:
 
 ```haskell
-some (argument str (metavar "FILES..."))
+some (argument str (metavar "FILES"))
 ```
 
 Note that arguments starting with `-` are considered options by
@@ -548,7 +555,7 @@ on each command), and commands can be added with the `command`
 modifier. For example,
 
 ```haskell
-subparser
+hsubparser
   ( command "add" (info addCommand ( progDesc "Add a file to the repository" ))
  <> command "commit" (info commitCommand ( progDesc "Record changes to the repository" ))
   )
@@ -566,7 +573,7 @@ start :: String -> IO ()
 stop :: IO ()
 
 opts :: Parser (IO ())
-opts = subparser
+opts = hsubparser
   ( command "start" (info (start <$> argument str idm) idm)
  <> command "stop"  (info (pure stop) idm) )
 
@@ -715,8 +722,8 @@ The `progDesc`, `header`, and `footer` functions can be used to
 specify a brief description or tagline for the program, and detailed
 information surrounding the generated option and command descriptions.
 
-Internally we actually use the [ansi-wl-pprint][ansi-wl-pprint]
-library, and one can use the `headerDoc` combinator and friends if
+Internally we actually use the [prettyprinter][prettyprinter]
+library, and one can supply either text or prettyprinter `Doc` elements if
 additional customisation is required.
 
 To display the usage text, the user may type `--help` if the `helper`
@@ -742,6 +749,52 @@ main = customExecParser p opts
     p = prefs showHelpOnEmpty
 ```
 
+#### Option groups
+
+The `parserOptionGroup` function can be used to group options together under
+a common heading. For example, if we have:
+
+```haskell
+Args
+  <$> parseMain
+  <*> parserOptionGroup "Group A" parseA
+  <*> parserOptionGroup "Group B" parseB
+  <*> parseOther
+```
+
+Then the `--help` page `Available options` will look like:
+
+```
+Available options:
+  <main options>
+  <other options>
+
+Group A
+  <A options>
+
+Group B
+  <B options>
+```
+
+Caveats:
+
+- Parser groups are like command groups in that groups are listed in creation
+  order, and duplicate groups are consolidated.
+
+- Nested groups are indented:
+
+    ```haskell
+    parserOptionGroup "Group Outer" (parserOptionGroup "Group Inner" parseA)
+    ```
+
+    Will render as:
+
+    ```
+    Group Outer
+    - Group Inner
+      ...
+    ```
+
 ### Command groups
 
 One experimental feature which may be useful for programs with many
@@ -757,11 +810,11 @@ hello :: Parser Sample
 hello = Hello <$> many (argument str (metavar "TARGET..."))
 
 sample :: Parser Sample
-sample = subparser
+sample = hsubparser
        ( command "hello" (info hello (progDesc "Print greeting"))
       <> command "goodbye" (info (pure Goodbye) (progDesc "Say goodbye"))
        )
-      <|> subparser
+      <|> hsubparser
        ( command "bonjour" (info hello (progDesc "Print greeting"))
       <> command "au-revoir" (info (pure Goodbye) (progDesc "Say goodbye"))
       <> commandGroup "French commands:"
@@ -1009,6 +1062,14 @@ value, and if not issue an error.
 See [this blog post][blog] for a more detailed explanation based on a
 simplified implementation.
 
+## Tutorials
+
+These are some tutorials found on the web:
+
+- [A Gentle Introduction to optparse-applicative](https://prborges.com/2023/introduction-to-optparse-applicative/).
+- [optparse-applicative quick start](https://ro-che.info/articles/2016-12-30-optparse-applicative-quick-start).
+- [Applicative Options Parsing in Haskell](https://thoughtbot.com/blog/applicative-options-parsing-in-haskell).
+
  [aeson]: http://hackage.haskell.org/package/aeson
  [applicative]: http://hackage.haskell.org/package/base/docs/Control-Applicative.html
  [arrows]: http://www.haskell.org/arrows/syntax.html
@@ -1017,8 +1078,6 @@ simplified implementation.
  [blog]: http://paolocapriotti.com/blog/2012/04/27/applicative-option-parser/
  [hackage]: http://hackage.haskell.org/package/optparse-applicative
  [hackage-png]: http://img.shields.io/hackage/v/optparse-applicative.svg
- [hackage-matrix]: https://matrix.hackage.haskell.org/package/optparse-applicative
- [hackage-matrix-png]: https://matrix.hackage.haskell.org/api/v2/packages/optparse-applicative/badge
  [hackage-deps]: http://packdeps.haskellers.com/reverse/optparse-applicative
  [hackage-deps-png]: https://img.shields.io/hackage-deps/v/optparse-applicative.svg
  [monoid]: http://hackage.haskell.org/package/base/docs/Data-Monoid.html
@@ -1026,4 +1085,4 @@ simplified implementation.
  [parsec]: http://hackage.haskell.org/package/parsec
  [status]: https://github.com/pcapriotti/optparse-applicative/actions/workflows/haskell-ci.yml
  [status-png]: https://github.com/pcapriotti/optparse-applicative/workflows/Haskell-CI/badge.svg
- [ansi-wl-pprint]: http://hackage.haskell.org/package/ansi-wl-pprint
+ [prettyprinter]: http://hackage.haskell.org/package/prettyprinter

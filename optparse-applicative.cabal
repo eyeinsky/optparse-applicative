@@ -1,5 +1,5 @@
 name:                optparse-applicative
-version:             0.17.0.0
+version:             0.18.1.0
 synopsis:            Utilities and combinators for parsing command line options
 description:
     optparse-applicative is a haskell library for parsing options
@@ -39,25 +39,34 @@ extra-source-files:  CHANGELOG.md
                      tests/formatting-long-subcommand.err.txt
                      tests/nested.err.txt
                      tests/optional.err.txt
+                     tests/parser_group_all_grouped.err.txt
+                     tests/parser_group_basic.err.txt
+                     tests/parser_group_command_groups.err.txt
+                     tests/parser_group_duplicate_command_groups.err.txt
+                     tests/parser_group_duplicates.err.txt
+                     tests/parser_group_nested.err.txt
                      tests/nested_optional.err.txt
                      tests/subparsers.err.txt
 
 homepage:            https://github.com/pcapriotti/optparse-applicative
 bug-reports:         https://github.com/pcapriotti/optparse-applicative/issues
 tested-with:
-  GHC==7.0.4,
-  GHC==7.2.2,
-  GHC==7.4.2,
-  GHC==7.6.3,
-  GHC==7.8.4,
-  GHC==7.10.3,
-  GHC==8.0.2,
-  GHC==8.2.2,
-  GHC==8.4.4,
-  GHC==8.6.5,
-  GHC==8.8.4,
-  GHC==8.10.4,
-  GHC==9.0.1
+  GHC==9.6.1
+  GHC==9.4.4
+  GHC==9.2.7
+  GHC==9.0.2
+  GHC==8.10.7
+  GHC==8.8.4
+  GHC==8.6.5
+  GHC==8.4.4
+  GHC==8.2.2
+  GHC==8.0.2
+  GHC==7.10.3
+  GHC==7.8.4
+  GHC==7.6.3
+  GHC==7.4.2
+  GHC==7.2.2
+  GHC==7.0.4
 
 source-repository head
   type:     git
@@ -97,16 +106,17 @@ library
                      , Options.Applicative.Types
                      , Options.Applicative.Internal
 
-  build-depends:       base                            == 4.*
-                     , transformers                    >= 0.2 && < 0.7
-                     , transformers-compat             >= 0.3 && < 0.8
-                     , ansi-wl-pprint                  >= 0.6.8 && < 0.7
+  build-depends:       base                            >= 4.5   && < 5
+                     , text                            >= 1.2
+                     , transformers                    >= 0.5   && < 0.7
+                     , prettyprinter                   >= 1.7   && < 1.8
+                     , prettyprinter-ansi-terminal     >= 1.1.2 && < 1.2
 
   if flag(process)
-    build-depends:     process                         >= 1.0 && < 1.7
+    build-depends:     process                         >= 1.0   && < 1.7
 
   if !impl(ghc >= 8)
-    build-depends:     semigroups                      >= 0.10 && < 0.21
+    build-depends:     semigroups                      >= 0.10  && < 0.21
                      , fail                            == 4.9.*
 
 test-suite tests
@@ -126,10 +136,16 @@ test-suite tests
                      , Examples.Formatting
                      , Examples.Hello
                      , Examples.LongSub
+                     , Examples.ParserGroup.AllGrouped
+                     , Examples.ParserGroup.Basic
+                     , Examples.ParserGroup.CommandGroups
+                     , Examples.ParserGroup.DuplicateCommandGroups
+                     , Examples.ParserGroup.Duplicates
+                     , Examples.ParserGroup.Nested
 
   build-depends:       base
                      , optparse-applicative
-                     , QuickCheck                      >= 2.8 && < 2.15
+                     , QuickCheck                      >= 2.8 && < 2.16
 
   if !impl(ghc >= 8)
     build-depends:     semigroups
