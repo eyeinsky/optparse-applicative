@@ -1,3 +1,4 @@
+{-# LANGUAGE FlexibleInstances #-}
 module Options.Applicative.Help.Chunk
   ( Chunk(..)
   , chunked
@@ -19,6 +20,7 @@ import Data.List.NonEmpty (NonEmpty(..))
 import Data.Maybe
 import Data.Semigroup
 import Prelude
+import Data.String
 
 import Options.Applicative.Help.Pretty
 
@@ -128,6 +130,9 @@ stringChunk s = pure (pretty s)
 paragraph :: String -> Chunk Doc
 paragraph = foldr (chunked (</>) . stringChunk) mempty
           . words
+
+instance IsString (Chunk Doc) where
+  fromString = paragraph
 
 -- | Display pairs of strings in a table.
 tabulate :: Int -> [(Doc, Doc)] -> Chunk Doc

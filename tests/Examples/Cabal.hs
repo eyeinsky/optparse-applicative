@@ -45,17 +45,17 @@ parser = runA $ proc () -> do
   opts <- asA commonOpts -< ()
   cmds <- (asA . hsubparser)
             ( command "install"
-              (info installParser
-                    (progDesc "Installs a list of packages"))
+              (defaultInfo installParser)
+                    { infoProgDesc = "Installs a list of packages" }
            <> command "update"
-              (info updateParser
-                    (progDesc "Updates list of known packages"))
+              (defaultInfo updateParser)
+                    { infoProgDesc = "Updates list of known packages" }
            <> command "configure"
-              (info configureParser
-                    (progDesc "Prepare to build the package"))
+              (defaultInfo configureParser)
+                    { infoProgDesc = "Prepare to build the package" }
            <> command "build"
-              (info buildParser
-                    (progDesc "Make this package ready for installation")) ) -< ()
+              (defaultInfo buildParser)
+                    { infoProgDesc = "Make this package ready for installation" }) -< ()
   A (simpleVersioner "0.0.0") >>> A helper -< Args opts cmds
 
 commonOpts :: Parser CommonOpts
@@ -115,8 +115,8 @@ buildOpts = runA $ proc () -> do
   returnA -< BuildOpts bdir
 
 pinfo :: ParserInfo Args
-pinfo = info parser
-  ( progDesc "An example modelled on cabal" )
+pinfo = (defaultInfo parser)
+  { infoProgDesc = "An example modelled on cabal" }
 
 main :: IO ()
 main = do

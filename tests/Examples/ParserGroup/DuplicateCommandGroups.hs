@@ -58,33 +58,32 @@ sample =
 
     parseCommand =
       hsubparser
-        ( command "list" (info (pure List) $ progDesc "Lists elements")
+        ( command "list" (defaultInfo (pure List)) { infoProgDesc = "Lists elements"}
             <> commandGroup "Info commands"
         )
         <|> hsubparser
-          ( command "delete" (info (pure Delete) $ progDesc "Deletes elements")
+          ( command "delete" (defaultInfo (pure Delete)) { infoProgDesc = "Deletes elements"}
               <> commandGroup "Update commands"
           )
         <|> hsubparser
-          ( command "insert" (info (pure Insert) $ progDesc "Inserts elements")
+          ( command "insert" (defaultInfo (pure Insert)) { infoProgDesc = "Inserts elements"}
               <> commandGroup "Update commands"
           )
         <|> hsubparser
-          ( command "query" (info (pure Query) $ progDesc "Runs a query")
+          ( command "query" (defaultInfo (pure Query)) { infoProgDesc = "Runs a query"}
           )
         <|> hsubparser
-        ( command "print" (info (pure Print) $ progDesc "Prints table")
+        ( command "print" (defaultInfo (pure Print)) { infoProgDesc = "Prints table"}
             <> commandGroup "Info commands"
         )
 
 opts :: ParserInfo Sample
 opts =
-  info
-    (sample <**> helper)
-    ( fullDesc
-        <> progDesc "Duplicate consecutive command groups consolidated"
-        <> header "parser_group.duplicate_command_groups - a test for optparse-applicative"
-    )
+  (defaultInfo
+    (sample <**> helper))
+    { infoProgDesc = "Duplicate consecutive command groups consolidated"
+    , infoHeader = "parser_group.duplicate_command_groups - a test for optparse-applicative"
+    }
 
 main :: IO ()
 main = do

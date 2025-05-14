@@ -148,26 +148,8 @@ module Options.Applicative (
   -- screen. Two help modes are supported: brief and full. In brief mode, only
   -- an option and argument summary is displayed, while in full mode each
   -- available option and command, including hidden ones, is described.
-  --
-  -- A 'ParserInfo' should be created with the 'info' function and a set of
-  -- 'InfoMod' modifiers.
-  --
-  info,
-
   ParserInfo(..),
-
-  InfoMod,
-  fullDesc,
-  briefDesc,
-  header,
-  headerDoc,
-  footer,
-  footerDoc,
-  progDesc,
-  progDescDoc,
-  failureCode,
-  noIntersperse,
-  forwardOptions,
+  defaultInfo,
 
   -- * Running parsers
   --

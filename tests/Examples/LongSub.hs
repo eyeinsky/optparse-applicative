@@ -26,9 +26,9 @@ hello =
 sample :: Parser Sample
 sample = hsubparser
        ( command "hello-very-long-sub"
-         (info hello
-               (progDesc "Print greeting"))
+         (defaultInfo hello)
+               { infoProgDesc = "Print greeting" }
        )
 
 opts :: ParserInfo Sample
-opts = info (sample <**> helper) idm
+opts = defaultInfo (sample <**> helper)

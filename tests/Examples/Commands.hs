@@ -21,19 +21,19 @@ hello = Hello <$> many (argument str (metavar "TARGET..."))
 sample :: Parser Sample
 sample = subparser
        ( command "hello"
-         (info hello
-               (progDesc "Print greeting"))
+         (defaultInfo hello)
+               { infoProgDesc = "Print greeting" }
       <> command "goodbye"
-         (info (pure Goodbye)
-               (progDesc "Say goodbye"))
+         (defaultInfo (pure Goodbye))
+               { infoProgDesc = "Say goodbye" }
        )
       <|> subparser
        ( command "bonjour"
-         (info hello
-               (progDesc "Print greeting"))
+         (defaultInfo hello)
+               { infoProgDesc = "Print greeting" }
       <> command "au-revoir"
-         (info (pure Goodbye)
-               (progDesc "Say goodbye"))
+         (defaultInfo (pure Goodbye))
+               { infoProgDesc = "Say goodbye" }
       <> commandGroup "French commands:"
       <> hidden
        )
@@ -43,7 +43,7 @@ run (Hello targets) = putStrLn $ "Hello, " ++ intercalate ", " targets ++ "!"
 run Goodbye = putStrLn "Goodbye."
 
 opts :: ParserInfo Sample
-opts = info (sample <**> helper) idm
+opts = defaultInfo (sample <**> helper)
 
 main :: IO ()
 main = execParser opts >>= run

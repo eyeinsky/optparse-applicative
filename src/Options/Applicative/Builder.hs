@@ -62,21 +62,8 @@ module Options.Applicative.Builder (
   readerAbort,
   readerError,
 
-  -- * Builder for 'ParserInfo'
-  InfoMod,
-  fullDesc,
-  briefDesc,
-  header,
-  headerDoc,
-  footer,
-  footerDoc,
-  progDesc,
-  progDescDoc,
-  failureCode,
-  noIntersperse,
-  forwardOptions,
-  allPositional,
-  info,
+  -- * ParserInfo
+  defaultInfo,
 
   -- * ParserPrefs
   defaultPrefs,
@@ -419,93 +406,16 @@ optionGroup grp o = o { optProps = props' }
 parserOptionGroup :: String -> Parser a -> Parser a
 parserOptionGroup g = mapParserOptions (optionGroup g)
 
--- | Modifier for 'ParserInfo'.
-newtype InfoMod a = InfoMod
-  { applyInfoMod :: ParserInfo a -> ParserInfo a }
+defaultInfo :: Parser a -> ParserInfo a
+defaultInfo parser = ParserInfo
+  { infoParser = parser
+  , infoFullDesc = True
+  , infoProgDesc = mempty
+  , infoHeader = mempty
+  , infoFooter = mempty
+  , infoFailureCode = 1
+  , infoPolicy = Intersperse }
 
-instance Monoid (InfoMod a) where
-  mempty = InfoMod id
-  mappend = (<>)
-
-instance Semigroup (InfoMod a) where
-  m1 <> m2 = InfoMod $ applyInfoMod m2 . applyInfoMod m1
-
--- | Show a full description in the help text of this parser (default).
-fullDesc :: InfoMod a
-fullDesc = InfoMod $ \i -> i { infoFullDesc = True }
-
--- | Only show a brief description in the help text of this parser.
-briefDesc :: InfoMod a
-briefDesc = InfoMod $ \i -> i { infoFullDesc = False }
-
--- | Specify a header for this parser.
-header :: String -> InfoMod a
-header s = InfoMod $ \i -> i { infoHeader = paragraph s }
-
--- | Specify a header for this parser as a 'Prettyprinter.Doc AnsiStyle'
--- value.
-headerDoc :: Maybe Doc -> InfoMod a
-headerDoc doc = InfoMod $ \i -> i { infoHeader = Chunk doc }
-
--- | Specify a footer for this parser.
-footer :: String -> InfoMod a
-footer s = InfoMod $ \i -> i { infoFooter = paragraph s }
-
--- | Specify a footer for this parser as a 'Prettyprinter.Doc AnsiStyle'
--- value.
-footerDoc :: Maybe Doc -> InfoMod a
-footerDoc doc = InfoMod $ \i -> i { infoFooter = Chunk doc }
-
--- | Specify a short program description.
-progDesc :: String -> InfoMod a
-progDesc s = InfoMod $ \i -> i { infoProgDesc = paragraph s }
-
--- | Specify a short program description as a 'Prettyprinter.Doc AnsiStyle'
--- value.
-progDescDoc :: Maybe Doc -> InfoMod a
-progDescDoc doc = InfoMod $ \i -> i { infoProgDesc = Chunk doc }
-
--- | Specify an exit code if a parse error occurs.
-failureCode :: Int -> InfoMod a
-failureCode n = InfoMod $ \i -> i { infoFailureCode = n }
-
--- | Disable parsing of regular options after arguments. After a positional
---   argument is parsed, all remaining options and arguments will be treated
---   as a positional arguments. Not recommended in general as users often
---   expect to be able to freely intersperse regular options and flags within
---   command line options.
-noIntersperse :: InfoMod a
-noIntersperse = InfoMod $ \p -> p { infoPolicy = NoIntersperse }
-
--- | Intersperse matched options and arguments normally, but allow unmatched
---   options to be treated as positional arguments.
---   This is sometimes useful if one is wrapping a third party cli tool and
---   needs to pass options through, while also providing a handful of their
---   own options. Not recommended in general as typos by the user may not
---   yield a parse error and cause confusion.
-forwardOptions :: InfoMod a
-forwardOptions = InfoMod $ \p -> p { infoPolicy = ForwardOptions }
-
--- | Disable parsing of regular options completely. All options and arguments
---   will be treated as a positional arguments. Obviously not recommended in
---   general as options will be unreachable.
---   This is the same behaviour one sees after the "--" pseudo-argument.
-allPositional :: InfoMod a
-allPositional = InfoMod $ \p -> p { infoPolicy = AllPositionals }
-
-
--- | Create a 'ParserInfo' given a 'Parser' and a modifier.
-info :: Parser a -> InfoMod a -> ParserInfo a
-info parser m = applyInfoMod m base
-  where
-    base = ParserInfo
-      { infoParser = parser
-      , infoFullDesc = True
-      , infoProgDesc = mempty
-      , infoHeader = mempty
-      , infoFooter = mempty
-      , infoFailureCode = 1
-      , infoPolicy = Intersperse }
 
 -- Convenience shortcuts
 

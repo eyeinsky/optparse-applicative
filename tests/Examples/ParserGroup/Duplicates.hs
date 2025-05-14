@@ -139,12 +139,11 @@ sample =
 
 opts :: ParserInfo Sample
 opts =
-  info
-    (sample <**> helper)
-    ( fullDesc
-        <> progDesc "Duplicate consecutive groups consolidated"
-        <> header "parser_group.duplicates - a test for optparse-applicative"
-    )
+  (defaultInfo
+    (sample <**> helper))
+    { infoProgDesc = "Duplicate consecutive groups consolidated"
+    , infoHeader = "parser_group.duplicates - a test for optparse-applicative"
+    }
 
 main :: IO ()
 main = do

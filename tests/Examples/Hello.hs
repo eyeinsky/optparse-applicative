@@ -32,10 +32,10 @@ main :: IO ()
 main = greet =<< execParser opts
 
 opts :: ParserInfo Sample
-opts = info (sample <**> helper)
-  ( fullDesc
-  <> progDesc "Print a greeting for TARGET"
-  <> header "hello - a test for optparse-applicative" )
+opts = (defaultInfo (sample <**> helper))
+  { infoProgDesc = "Print a greeting for TARGET"
+  , infoHeader = "hello - a test for optparse-applicative"
+  }
 
 greet :: Sample -> IO ()
 greet (Sample h False n) = replicateM_ n . putStrLn $ "Hello, " ++ h

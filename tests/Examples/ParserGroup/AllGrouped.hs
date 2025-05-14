@@ -78,12 +78,10 @@ sample =
 
 opts :: ParserInfo Sample
 opts =
-  info
-    sample
-    ( fullDesc
-        <> progDesc "Every option is grouped"
-        <> header "parser_group.all_grouped - a test for optparse-applicative"
-    )
+  (defaultInfo sample)
+    { infoProgDesc = "Every option is grouped"
+    , infoHeader = "parser_group.all_grouped - a test for optparse-applicative"
+    }
 
 main :: IO ()
 main = do

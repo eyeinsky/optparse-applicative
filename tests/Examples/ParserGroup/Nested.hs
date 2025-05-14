@@ -126,12 +126,11 @@ sample =
 
 opts :: ParserInfo Sample
 opts =
-  info
-    (sample <**> helper)
-    ( fullDesc
-        <> progDesc "Nested parser groups"
-        <> header "parser_group.nested - a test for optparse-applicative"
-    )
+  (defaultInfo
+    (sample <**> helper))
+    { infoProgDesc = "Nested parser groups"
+    , infoHeader = "parser_group.nested - a test for optparse-applicative"
+    }
 
 main :: IO ()
 main = do

@@ -15,4 +15,4 @@ b :: Parser Value
 b = flag' B (short 'b')
 
 opts :: ParserInfo [Value]
-opts = info values idm
+opts = defaultInfo values

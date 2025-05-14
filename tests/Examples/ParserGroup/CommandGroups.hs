@@ -104,29 +104,26 @@ sample =
 
     parseCommand =
       hsubparser
-        ( command "list 2" (info (pure List) $ progDesc "Lists elements")
-        )
+        ( command "list 2" (defaultInfo (pure List)) { infoProgDesc = "Lists elements" } )
         <|> hsubparser
-        ( command "list" (info (pure List) $ progDesc "Lists elements")
-            <> command "print" (info (pure Print) $ progDesc "Prints table")
+        ( command "list" (defaultInfo (pure List)) { infoProgDesc = "Lists elements" }
+            <> command "print" (defaultInfo (pure Print)) { infoProgDesc = "Prints table" }
             <> commandGroup "Info commands"
         )
         <|> hsubparser
-          ( command "delete" (info (pure Delete) $ progDesc "Deletes elements")
-          )
+          ( command "delete" (defaultInfo (pure Delete)) { infoProgDesc = "Deletes elements" })
         <|> hsubparser
-          ( command "query" (info (pure Query) $ progDesc "Runs a query")
+          ( command "query" (defaultInfo (pure Query)) { infoProgDesc = "Runs a query" }
               <> commandGroup "Query commands"
           )
 
 opts :: ParserInfo Sample
 opts =
-  info
-    (sample <**> helper)
-    ( fullDesc
-        <> progDesc "Option and command groups"
-        <> header "parser_group.command_groups - a test for optparse-applicative"
-    )
+  (defaultInfo
+    (sample <**> helper))
+    { infoProgDesc = "Option and command groups"
+    , infoHeader = "parser_group.command_groups - a test for optparse-applicative"
+    }
 
 main :: IO ()
 main = do
