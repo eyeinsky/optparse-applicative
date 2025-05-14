@@ -88,8 +88,8 @@ helperWith modifiers =
 hsubparser :: Mod CommandFields a -> Parser a
 hsubparser m = mkParser d g rdr
   where
-    Mod _ d g = metavar "COMMAND" `mappend` m
-    (groupName, cmds) = mkCommand m
+    Mod f d g = metavar "COMMAND" `mappend` m
+    CommandFields cmds groupName = f (CommandFields [] Nothing)
     rdr = CmdReader groupName ((fmap . fmap) add_helper cmds)
     add_helper pinfo = pinfo
       { infoParser = infoParser pinfo <**> helper }

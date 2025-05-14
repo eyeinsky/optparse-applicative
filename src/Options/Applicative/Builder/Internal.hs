@@ -15,7 +15,6 @@ module Options.Applicative.Builder.Internal (
   fieldMod,
 
   baseProps,
-  mkCommand,
   mkParser,
   mkOption,
   mkProps,
@@ -153,12 +152,6 @@ baseProps = OptProperties
   , propShowGlobal = True
   , propGroup = OptGroup []
   }
-
-mkCommand :: Mod CommandFields a -> (Maybe String, [(String, ParserInfo a)])
-mkCommand m = (group, cmds)
-  where
-    Mod f _ _ = m
-    CommandFields cmds group = f (CommandFields [] Nothing)
 
 mkParser :: DefaultProp a
          -> (OptProperties -> OptProperties)
