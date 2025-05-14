@@ -157,7 +157,7 @@ mkParser :: DefaultProp a
          -> Parser a
 mkParser (DefaultProp def sdef) g rdr = maybe o (\a -> o <|> pure a) def
   where
-    o = liftOpt $ Option rdr (g baseProps) { propShowDefault = sdef <*> def }
+    o = OptP $ Option rdr (g baseProps) { propShowDefault = sdef <*> def }
 
 -- | Hide this option completely from the help text
 --

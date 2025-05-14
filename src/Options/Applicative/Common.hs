@@ -20,7 +20,6 @@ module Options.Applicative.Common (
   --  corresponding parser.
   --
   Parser,
-  liftOpt,
   showOption,
 
   -- * Program descriptions
@@ -75,10 +74,6 @@ isOptionPrefix :: OptName -> OptName -> Bool
 isOptionPrefix (OptShort x) (OptShort y) = x == y
 isOptionPrefix (OptLong x) (OptLong y) = x `isPrefixOf` y
 isOptionPrefix _ _ = False
-
--- | Create a parser composed of a single option.
-liftOpt :: Option a -> Parser a
-liftOpt = OptP
 
 optMatches :: MonadP m => Bool -> OptReader a -> OptWord -> Maybe (StateT Args m a)
 optMatches disambiguate opt (OptWord arg1 val) = case opt of
