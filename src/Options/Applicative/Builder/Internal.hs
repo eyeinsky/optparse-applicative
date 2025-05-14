@@ -16,8 +16,6 @@ module Options.Applicative.Builder.Internal (
 
   baseProps,
   mkParser,
-  mkOption,
-  mkProps,
 
   internal,
   noGlobal
@@ -157,25 +155,9 @@ mkParser :: DefaultProp a
          -> (OptProperties -> OptProperties)
          -> OptReader a
          -> Parser a
-mkParser d@(DefaultProp def _) g rdr =
-  let
-    o = liftOpt $ mkOption d g rdr
-  in
-    maybe o (\a -> o <|> pure a) def
-
-mkOption :: DefaultProp a
-         -> (OptProperties -> OptProperties)
-         -> OptReader a
-         -> Option a
-mkOption d g rdr = Option rdr (mkProps d g)
-
-mkProps :: DefaultProp a
-        -> (OptProperties -> OptProperties)
-        -> OptProperties
-mkProps (DefaultProp def sdef) g = props
+mkParser (DefaultProp def sdef) g rdr = maybe o (\a -> o <|> pure a) def
   where
-    props = (g baseProps)
-      { propShowDefault = sdef <*> def }
+    o = liftOpt $ Option rdr (g baseProps) { propShowDefault = sdef <*> def }
 
 -- | Hide this option completely from the help text
 --
