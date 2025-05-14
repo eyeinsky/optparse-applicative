@@ -222,7 +222,7 @@ prop_long_equals = once $
                        <> short 'i'
                        <> help "integer value")
       i = info (p <**> helper) fullDesc
-  in checkHelpTextWith ExitSuccess (prefs helpLongEquals) "long_equals" i ["--help"]
+  in checkHelpTextWith ExitSuccess defaultPrefs { prefHelpLongEquals = True } "long_equals" i ["--help"]
 
 prop_long_equals_doesnt_do_shorts :: Property
 prop_long_equals_doesnt_do_shorts = once $
@@ -230,7 +230,7 @@ prop_long_equals_doesnt_do_shorts = once $
       p = option auto (   short 'i'
                        <> help "integer value")
       i = info (p <**> helper) fullDesc
-      result = execParserPure (prefs helpLongEquals) i ["--help"]
+      result = execParserPure defaultPrefs { prefHelpLongEquals = True } i ["--help"]
   in assertError result $ \failure ->
     let text = head . lines . fst $ renderFailure failure "test"
     in  "Usage: test -i ARG" === text
@@ -287,7 +287,7 @@ prop_help_on_empty = once $
       p1 = subparser (command "c" (info p3 idm)  <> metavar "C")
       p0 = (,) <$> p2 <*> p1
       i = info (p0 <**> helper) idm
-  in checkHelpTextWith (ExitFailure 1) (prefs showHelpOnEmpty) "helponempty" i []
+  in checkHelpTextWith (ExitFailure 1) defaultPrefs { prefShowHelpOnEmpty = True } "helponempty" i []
 
 prop_help_on_empty_sub :: Property
 prop_help_on_empty_sub = once $
@@ -297,7 +297,7 @@ prop_help_on_empty_sub = once $
       p1 = subparser (command "c" (info p3 idm)  <> metavar "C")
       p0 = (,) <$> p2 <*> p1
       i = info (p0 <**> helper) idm
-  in checkHelpTextWith (ExitFailure 1) (prefs showHelpOnEmpty) "helponemptysub" i ["b", "-aA", "c"]
+  in checkHelpTextWith (ExitFailure 1) defaultPrefs { prefShowHelpOnEmpty = True } "helponemptysub" i ["b", "-aA", "c"]
 
 prop_many_args :: Property
 prop_many_args = forAll (choose (0,2000)) $ \nargs ->
@@ -313,7 +313,7 @@ prop_disambiguate = once $
         <|> flag' 2 (long "bar")
         <|> flag' 3 (long "baz")
       i = info p idm
-      result = execParserPure (prefs disambiguate) i ["--f"]
+      result = execParserPure defaultPrefs { prefDisambiguate = True } i ["--f"]
   in  assertResult result ((===) 1)
 
 prop_ambiguous :: Property
@@ -322,7 +322,7 @@ prop_ambiguous = once $
         <|> flag' 2 (long "bar")
         <|> flag' 3 (long "baz")
       i = info p idm
-      result = execParserPure (prefs disambiguate) i ["--ba"]
+      result = execParserPure defaultPrefs { prefDisambiguate = True } i ["--ba"]
   in  assertError result (\_ -> property succeeded)
 
 
@@ -330,7 +330,7 @@ prop_disambiguate_in_same_subparsers :: Property
 prop_disambiguate_in_same_subparsers = once $
   let p0 = subparser (command "oranges" (info (pure "oranges") idm) <> command "apples" (info (pure "apples") idm) <> metavar "B")
       i = info (p0 <**> helper) idm
-      result = execParserPure (prefs disambiguate) i ["orang"]
+      result = execParserPure defaultPrefs { prefDisambiguate = True } i ["orang"]
   in  assertResult result ((===) "oranges")
 
 prop_disambiguate_commands_in_separate_subparsers :: Property
@@ -339,14 +339,14 @@ prop_disambiguate_commands_in_separate_subparsers = once $
       p1 = subparser (command "apples" (info (pure "apples") idm)  <> metavar "C")
       p0 = p1 <|> p2
       i = info (p0 <**> helper) idm
-      result = execParserPure (prefs disambiguate) i ["orang"]
+      result = execParserPure defaultPrefs { prefDisambiguate = True } i ["orang"]
   in  assertResult result ((===) "oranges")
 
 prop_fail_ambiguous_commands_in_same_subparser :: Property
 prop_fail_ambiguous_commands_in_same_subparser = once $
   let p0 = subparser (command "oranges" (info (pure ()) idm) <> command "orangutans" (info (pure ()) idm) <> metavar "B")
       i = info (p0 <**> helper) idm
-      result = execParserPure (prefs disambiguate) i ["orang"]
+      result = execParserPure defaultPrefs { prefDisambiguate = True } i ["orang"]
   in  assertError result (\_ -> property succeeded)
 
 prop_fail_ambiguous_commands_in_separate_subparser :: Property
@@ -355,7 +355,7 @@ prop_fail_ambiguous_commands_in_separate_subparser = once $
       p1 = subparser (command "orangutans" (info (pure ()) idm)  <> metavar "C")
       p0 = p1 <|> p2
       i = info (p0 <**> helper) idm
-      result = execParserPure (prefs disambiguate) i ["orang"]
+      result = execParserPure defaultPrefs { prefDisambiguate = True } i ["orang"]
   in  assertError result (\_ -> property succeeded)
 
 prop_without_disambiguation_same_named_commands_should_parse_in_order :: Property
@@ -537,7 +537,7 @@ prop_backtracking = once $
         <$> subparser (command "c" (info p2 idm))
         <*> switch (short 'b')
       i = info (p1 <**> helper) idm
-      result = execParserPure (prefs noBacktrack) i ["c", "-b"]
+      result = execParserPure defaultPrefs { prefBacktrack = NoBacktrack } i ["c", "-b"]
   in assertError result $ \_ -> property succeeded
 
 prop_subparser_inline :: Property
@@ -547,7 +547,7 @@ prop_subparser_inline = once $
         <$> subparser (command "c" (info p2 idm))
         <*> switch (short 'b')
       i = info (p1 <**> helper) idm
-      result = execParserPure (prefs subparserInline) i ["c", "-b", "-a" ]
+      result = execParserPure defaultPrefs { prefBacktrack = SubparserInline } i ["c", "-b", "-a" ]
   in assertResult result ((True, True) ===)
 
 prop_error_context :: Property
@@ -642,7 +642,7 @@ prop_long_help = once $
             [ "This is a very long program description. "
             , "This text should be automatically wrapped "
             , "to fit the size of the terminal" ]) )
-  in checkHelpTextWith ExitSuccess (prefs (columns 50)) "formatting" i ["--help"]
+  in checkHelpTextWith ExitSuccess (defaultPrefs { prefColumns = 50 }) "formatting" i ["--help"]
 
 prop_issue_50 :: Property
 prop_issue_50 = once $
@@ -821,7 +821,7 @@ prop_grouped_some_option_ellipsis :: Property
 prop_grouped_some_option_ellipsis = once $
   let x :: Parser String
       x = strOption (short 'x' <> metavar "X")
-      p = prefs (multiSuffix "...")
+      p = defaultPrefs { prefMultiSuffix = "..." }
       r = show . extractChunk $ H.briefDesc p (x *> some x)
   in r === "-x X (-x X)..."
 
@@ -829,7 +829,7 @@ prop_grouped_many_option_ellipsis :: Property
 prop_grouped_many_option_ellipsis = once $
   let x :: Parser String
       x = strOption (short 'x' <> metavar "X")
-      p = prefs (multiSuffix "...")
+      p = defaultPrefs { prefMultiSuffix = "..." }
       r = show . extractChunk $ H.briefDesc p (x *> many x)
   in r === "-x X [-x X]..."
 
@@ -837,7 +837,7 @@ prop_grouped_some_argument_ellipsis :: Property
 prop_grouped_some_argument_ellipsis = once $
   let x :: Parser String
       x = strArgument (metavar "X")
-      p = prefs (multiSuffix "...")
+      p = defaultPrefs { prefMultiSuffix = "..." }
       r = show . extractChunk $ H.briefDesc p (x *> some x)
   in r === "X X..."
 
@@ -845,7 +845,7 @@ prop_grouped_many_argument_ellipsis :: Property
 prop_grouped_many_argument_ellipsis = once $
   let x :: Parser String
       x = strArgument (metavar "X")
-      p = prefs (multiSuffix "...")
+      p = defaultPrefs { prefMultiSuffix = "..." }
       r = show . extractChunk $ H.briefDesc p (x *> many x)
   in r === "X [X]..."
 
@@ -853,7 +853,7 @@ prop_grouped_some_pairs_argument_ellipsis :: Property
 prop_grouped_some_pairs_argument_ellipsis = once $
   let x :: Parser String
       x = strArgument (metavar "X")
-      p = prefs (multiSuffix "...")
+      p = defaultPrefs { prefMultiSuffix = "..." }
       r = show . extractChunk $ H.briefDesc p (x *> some (x *> x))
   in r === "X (X X)..."
 
@@ -861,7 +861,7 @@ prop_grouped_many_pairs_argument_ellipsis :: Property
 prop_grouped_many_pairs_argument_ellipsis = once $
   let x :: Parser String
       x = strArgument (metavar "X")
-      p = prefs (multiSuffix "...")
+      p = defaultPrefs { prefMultiSuffix = "..." }
       r = show . extractChunk $ H.briefDesc p (x *> many (x *> x))
   in r === "X [X X]..."
 
@@ -869,7 +869,7 @@ prop_grouped_some_dual_option_ellipsis :: Property
 prop_grouped_some_dual_option_ellipsis = once $
   let x :: Parser String
       x = strOption (short 'a' <> short 'b' <> metavar "X")
-      p = prefs (multiSuffix "...")
+      p = defaultPrefs { prefMultiSuffix = "..." }
       r = show . extractChunk $ H.briefDesc p (x *> some x)
   in r === "(-a|-b X) (-a|-b X)..."
 
@@ -877,35 +877,35 @@ prop_grouped_many_dual_option_ellipsis :: Property
 prop_grouped_many_dual_option_ellipsis = once $
   let x :: Parser String
       x = strOption (short 'a' <> short 'b' <> metavar "X")
-      p = prefs (multiSuffix "...")
+      p = defaultPrefs { prefMultiSuffix = "..." }
       r = show . extractChunk $ H.briefDesc p (x *> many x)
   in r === "(-a|-b X) [-a|-b X]..."
 
 prop_grouped_some_dual_flag_ellipsis :: Property
 prop_grouped_some_dual_flag_ellipsis = once $
   let x = flag' () (short 'a' <> short 'b')
-      p = prefs (multiSuffix "...")
+      p = defaultPrefs { prefMultiSuffix = "..." }
       r = show . extractChunk $ H.briefDesc p (x *> some x)
   in r === "(-a|-b) (-a|-b)..."
 
 prop_grouped_many_dual_flag_ellipsis :: Property
 prop_grouped_many_dual_flag_ellipsis = once $
   let x = flag' () (short 'a' <> short 'b')
-      p = prefs (multiSuffix "...")
+      p = defaultPrefs { prefMultiSuffix = "..." }
       r = show . extractChunk $ H.briefDesc p (x *> many x)
   in r === "(-a|-b) [-a|-b]..."
 
 prop_issue_402 :: Property
 prop_issue_402 = once $
   let x = some (flag' () (short 'a')) <|> some (flag' () (short 'b' <> internal))
-      p = prefs (multiSuffix "...")
+      p = defaultPrefs { prefMultiSuffix = "..." }
       r = show . extractChunk $ H.briefDesc p x
   in r === "(-a)..."
 
 prop_nice_some1 :: Property
 prop_nice_some1 = once $
   let x = Options.Applicative.NonEmpty.some1 (flag' () (short 'a'))
-      p = prefs (multiSuffix "...")
+      p = defaultPrefs { prefMultiSuffix = "..." }
       r = show . extractChunk $ H.briefDesc p x
   in r === "(-a)..."
 
@@ -950,8 +950,8 @@ prop_long_command_line_flow = once $
         ( progDesc (concat
             [ "This is a very long program description. "
             , "This text should be automatically wrapped "
-            , "to fit the size of the terminal" ]) )
-  in checkHelpTextWith ExitSuccess (prefs (columns 50)) "formatting-long-subcommand" i ["hello-very-long-sub", "--help"]
+            , "to fit the size of the terminal" ] }
+  in checkHelpTextWith ExitSuccess (defaultPrefs { prefColumns = 50 }) "formatting-long-subcommand" i ["hello-very-long-sub", "--help"]
 
 prop_parser_group_basic :: Property
 prop_parser_group_basic = once $

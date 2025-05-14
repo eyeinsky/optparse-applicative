@@ -88,5 +88,5 @@ opts =
 
 main :: IO ()
 main = do
-  r <- customExecParser (prefs helpShowGlobals) opts
+  r <- customExecParser defaultPrefs { prefHelpShowGlobal = True } opts
   print r

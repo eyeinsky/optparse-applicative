@@ -120,5 +120,5 @@ pinfo = info parser
 
 main :: IO ()
 main = do
-  r <- customExecParser (prefs helpShowGlobals) pinfo
+  r <- customExecParser defaultPrefs { prefHelpShowGlobal = True } pinfo
   print r

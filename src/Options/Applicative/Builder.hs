@@ -78,20 +78,7 @@ module Options.Applicative.Builder (
   allPositional,
   info,
 
-  -- * Builder for 'ParserPrefs'
-  PrefsMod,
-  multiSuffix,
-  disambiguate,
-  showHelpOnError,
-  showHelpOnEmpty,
-  noBacktrack,
-  subparserInline,
-  columns,
-  helpLongEquals,
-  helpShowGlobals,
-  helpIndent,
-  briefHangPoint,
-  prefs,
+  -- * ParserPrefs
   defaultPrefs,
 
   -- * Types
@@ -520,90 +507,6 @@ info parser m = applyInfoMod m base
       , infoFailureCode = 1
       , infoPolicy = Intersperse }
 
-newtype PrefsMod = PrefsMod
-  { applyPrefsMod :: ParserPrefs -> ParserPrefs }
-
-instance Monoid PrefsMod where
-  mempty = PrefsMod id
-  mappend = (<>)
-
-instance Semigroup PrefsMod where
-  m1 <> m2 = PrefsMod $ applyPrefsMod m2 . applyPrefsMod m1
-
--- | Include a suffix to attach to the metavar when multiple values
---   can be entered.
-multiSuffix :: String -> PrefsMod
-multiSuffix s = PrefsMod $ \p -> p { prefMultiSuffix = s }
-
--- | Turn on disambiguation.
---
---   See
---   https://github.com/pcapriotti/optparse-applicative#disambiguation
-disambiguate :: PrefsMod
-disambiguate = PrefsMod $ \p -> p { prefDisambiguate = True }
-
--- | Show full help text on any error.
-showHelpOnError :: PrefsMod
-showHelpOnError = PrefsMod $ \p -> p { prefShowHelpOnError = True }
-
--- | Show the help text if the user enters only the program name or
---   subcommand.
---
---   This will suppress a "Missing:" error and show the full usage
---   instead if a user just types the name of the program.
-showHelpOnEmpty :: PrefsMod
-showHelpOnEmpty = PrefsMod $ \p -> p { prefShowHelpOnEmpty = True }
-
--- | Turn off backtracking after subcommand is parsed.
-noBacktrack :: PrefsMod
-noBacktrack = PrefsMod $ \p -> p { prefBacktrack = NoBacktrack }
-
--- | Allow full mixing of subcommand and parent arguments by inlining
--- selected subparsers into the parent parser.
---
--- /NOTE:/ When this option is used, preferences for the subparser which
--- effect the parser behaviour (such as noIntersperse) are ignored.
-subparserInline :: PrefsMod
-subparserInline = PrefsMod $ \p -> p { prefBacktrack = SubparserInline }
-
--- | Set the maximum width of the generated help text.
-columns :: Int -> PrefsMod
-columns cols = PrefsMod $ \p -> p { prefColumns = cols }
-
--- | Show equals sign, rather than space, in usage and help text for options with
--- long names.
-helpLongEquals :: PrefsMod
-helpLongEquals = PrefsMod $ \p -> p { prefHelpLongEquals = True }
-
--- | Show global help information in subparser usage.
-helpShowGlobals :: PrefsMod
-helpShowGlobals = PrefsMod $ \p -> p { prefHelpShowGlobal = True }
-
--- | Set fill width in help text presentation.
-helpIndent :: Int -> PrefsMod
-helpIndent w = PrefsMod $ \p -> p { prefTabulateFill = w }
-
--- | Set the width at which to hang the brief help text.
-briefHangPoint :: Int -> PrefsMod
-briefHangPoint php = PrefsMod $ \p -> p { prefBriefHangPoint = php }
-
-
--- | Create a `ParserPrefs` given a modifier
-prefs :: PrefsMod -> ParserPrefs
-prefs m = applyPrefsMod m base
-  where
-    base = ParserPrefs
-      { prefMultiSuffix = ""
-      , prefDisambiguate = False
-      , prefShowHelpOnError = False
-      , prefShowHelpOnEmpty = False
-      , prefBacktrack = Backtrack
-      , prefColumns = 80
-      , prefHelpLongEquals = False
-      , prefHelpShowGlobal = False
-      , prefTabulateFill = 24
-      , prefBriefHangPoint = 35 }
-
 -- Convenience shortcuts
 
 -- | Trivial option modifier.
@@ -612,4 +515,14 @@ idm = mempty
 
 -- | Default preferences.
 defaultPrefs :: ParserPrefs
-defaultPrefs = prefs idm
+defaultPrefs = ParserPrefs
+  { prefMultiSuffix = ""
+  , prefDisambiguate = False
+  , prefShowHelpOnError = False
+  , prefShowHelpOnEmpty = False
+  , prefBacktrack = Backtrack
+  , prefColumns = 80
+  , prefHelpLongEquals = False
+  , prefHelpShowGlobal = False
+  , prefTabulateFill = 24
+  , prefBriefHangPoint = 35 }

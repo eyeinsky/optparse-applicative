@@ -183,25 +183,7 @@ module Options.Applicative (
   overFailure,
 
   -- ** 'ParserPrefs'
-  --
-  -- | A 'ParserPrefs' contains general preferences for all command-line
-  -- options, and should be built with the 'prefs' function.
-  prefs,
-
   ParserPrefs(..),
-
-  PrefsMod,
-  multiSuffix,
-  disambiguate,
-  showHelpOnError,
-  showHelpOnEmpty,
-  noBacktrack,
-  subparserInline,
-  columns,
-  helpLongEquals,
-  helpShowGlobals,
-  helpIndent,
-  briefHangPoint,
   defaultPrefs,
 
   -- * Completions
