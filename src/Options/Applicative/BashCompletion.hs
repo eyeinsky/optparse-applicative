@@ -202,7 +202,7 @@ words.
 Tab characters separate items from descriptions.
 -}
 
--- | Generated fish shell completion script 
+-- | Generated fish shell completion script
 fishCompletionScript :: String -> String -> String
 fishCompletionScript prog progn = unlines
   [ " function _" ++ progn
