@@ -39,18 +39,6 @@ x </> y = x <> softline <> y
 
 -- | Apply the function if we're not at the
 --   start of our nesting level.
-ifNotAtRoot :: (Doc -> Doc) -> Doc -> Doc
-ifNotAtRoot =
-  ifElseAtRoot id
-
--- | Apply the function if we're not at the
---   start of our nesting level.
-ifAtRoot :: (Doc -> Doc) -> Doc -> Doc
-ifAtRoot =
-  flip ifElseAtRoot id
-
--- | Apply the function if we're not at the
---   start of our nesting level.
 ifElseAtRoot :: (Doc -> Doc) -> (Doc -> Doc) -> Doc -> Doc
 ifElseAtRoot f g doc =
   nesting $ \i ->
@@ -66,7 +54,7 @@ ifElseAtRoot f g doc =
 --   group.
 groupOrNestLine :: Doc -> Doc
 groupOrNestLine =
-  group . ifNotAtRoot (linebreak <>) . nest 2
+  group . ifElseAtRoot id (linebreak <>) . nest 2
 
 
 -- | Separate items in an alternative with a pipe.
@@ -91,7 +79,7 @@ altSep x y =
 --   (usually 1/3 of the ribbon), then we will make a line
 --   break, indent all of the usage, and go.
 --
---   The ifAtRoot is an interesting clause. If this whole
+--   The ifElseAtRoot is an interesting clause. If this whole
 --   operation is put under a `group` then the linebreak
 --   will disappear; then item d will therefore not be at
 --   the starting column, and it won't be indented more.
@@ -101,7 +89,7 @@ hangAtIfOver i j d =
     if k <= j then
       align d
     else
-      linebreak <> ifAtRoot (indent i) d
+      linebreak <> ifElseAtRoot (indent i) id d
 
 
 renderPretty :: Double -> Int -> Doc -> SimpleDocStream AnsiStyle
