@@ -218,20 +218,19 @@ parserFailure pprefs pinfo msg ctx0 = ParserFailure $ \progn ->
             drop 1 voided
       in
         if prefHelpShowGlobal pprefs then
-          parserGlobals pprefs globalParsers
+          mempty { helpGlobals = globalDesc pprefs globalParsers }
         else
           mempty
 
     usage_help progn names i = case msg of
-      InfoMsg _
-        -> mempty
-      _
-        -> mconcat [
-            usageHelp (pure . parserUsage pprefs (infoParser i) . unwords $ progn : names)
-          , descriptionHelp (infoProgDesc i)
-          ]
+      InfoMsg _ -> mempty
+      _         -> mempty
+           { helpUsage = pure . parserUsage pprefs (infoParser i) . unwords $ progn : names
+           , helpDescription = infoProgDesc i
+           }
 
-    error_help = errorHelp $ case msg of
+    error_help = mempty { helpError = error_help' }
+    error_help' = case msg of
       ShowHelpText {}
         -> mempty
 
@@ -265,7 +264,8 @@ parserFailure pprefs pinfo msg ctx0 = ParserFailure $ \progn ->
         -> mempty
 
 
-    suggestion_help = suggestionsHelp $ case msg of
+    suggestion_help = mempty { helpSuggestions = suggestion_help' }
+    suggestion_help' = case msg of
       UnexpectedError arg (SomeParser x)
         --
         -- We have an unexpected argument and the parser which
@@ -329,8 +329,8 @@ parserFailure pprefs pinfo msg ctx0 = ParserFailure $ \progn ->
       | otherwise
       = mempty
       where
-        h = headerHelp (infoHeader i)
-        f = footerHelp (infoFooter i)
+        h = mempty { helpHeader = infoHeader i }
+        f = mempty { helpFooter = infoFooter i }
 
     show_full_help = case msg of
       ShowHelpText {}          -> True

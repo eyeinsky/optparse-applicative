@@ -6,17 +6,8 @@ module Options.Applicative.Help.Core (
   fullDesc,
   globalDesc,
   ParserHelp(..),
-  errorHelp,
-  headerHelp,
-  suggestionsHelp,
-  usageHelp,
-  descriptionHelp,
-  bodyHelp,
-  footerHelp,
-  globalsHelp,
   parserHelp,
   parserUsage,
-  parserGlobals
   ) where
 
 import           Control.Applicative
@@ -358,36 +349,9 @@ optionsDesc global pprefs p =
     lvlIndent :: Int
     lvlIndent = 2
 
-errorHelp :: Chunk Doc -> ParserHelp
-errorHelp chunk = mempty { helpError = chunk }
-
-headerHelp :: Chunk Doc -> ParserHelp
-headerHelp chunk = mempty { helpHeader = chunk }
-
-suggestionsHelp :: Chunk Doc -> ParserHelp
-suggestionsHelp chunk = mempty { helpSuggestions = chunk }
-
-globalsHelp :: Chunk Doc -> ParserHelp
-globalsHelp chunk = mempty { helpGlobals = chunk }
-
-usageHelp :: Chunk Doc -> ParserHelp
-usageHelp chunk = mempty { helpUsage = chunk }
-
-descriptionHelp :: Chunk Doc -> ParserHelp
-descriptionHelp chunk = mempty { helpDescription = chunk }
-
-bodyHelp :: Chunk Doc -> ParserHelp
-bodyHelp chunk = mempty { helpBody = chunk }
-
-footerHelp :: Chunk Doc -> ParserHelp
-footerHelp chunk = mempty { helpFooter = chunk }
-
 -- | Generate the help text for a program.
 parserHelp :: ParserPrefs -> Parser a -> ParserHelp
-parserHelp pprefs p =
-  bodyHelp . vsepChunks $
-    fullDesc pprefs p
-      : (group_title <$> cs)
+parserHelp pprefs p = mempty { helpBody = vsepChunks $ fullDesc pprefs p : (group_title <$> cs) }
   where
     def = "Available commands:"
     cs = groupFstAll $ cmdDesc pprefs p
@@ -399,13 +363,6 @@ parserHelp pprefs p =
 
     with_title :: String -> Chunk Doc -> Chunk Doc
     with_title title = fmap (pretty title .$.)
-
-
-parserGlobals :: ParserPrefs -> Parser a -> ParserHelp
-parserGlobals pprefs p =
-  globalsHelp $ globalDesc pprefs p
-
-
 
 -- | Generate option summary.
 parserUsage :: ParserPrefs -> Parser a -> String -> Doc
