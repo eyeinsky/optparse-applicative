@@ -92,20 +92,7 @@ hangAtIfOver i j d =
       linebreak <> ifElseAtRoot (indent i) id d
 
 
-renderPretty :: Double -> Int -> Doc -> SimpleDocStream AnsiStyle
-renderPretty ribbonFraction lineWidth
-  = layoutPretty LayoutOptions
-      { layoutPageWidth = AvailablePerLine lineWidth ribbonFraction }
-
 prettyString :: Double -> Int -> Doc -> String
-prettyString ribbonFraction lineWidth
-  = streamToString
-  . renderPretty ribbonFraction lineWidth
-
-streamToString :: SimpleDocStream AnsiStyle -> String
-streamToString sdoc =
-  let
-    rendered =
-      Prettyprinter.Render.Terminal.renderLazy sdoc
-  in
-    Lazy.unpack rendered
+prettyString ribbonFraction lineWidth = Lazy.unpack . renderLazy . layoutPretty o
+  where
+    o = LayoutOptions { layoutPageWidth = AvailablePerLine lineWidth ribbonFraction }
