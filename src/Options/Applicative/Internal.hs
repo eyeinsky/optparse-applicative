@@ -5,7 +5,6 @@ module Options.Applicative.Internal
   , MonadP(..)
   , ParseError(..)
 
-  , uncons
   , hoistMaybe
   , hoistEither
   , runReadM
@@ -95,10 +94,6 @@ hoistEither = either errorP return
 
 runP :: P a -> ParserPrefs -> (Either ParseError a, [Context])
 runP (P p) = runReader . flip runStateT [] . runExceptT $ p
-
-uncons :: [a] -> Maybe (a, [a])
-uncons [] = Nothing
-uncons (x : xs) = Just (x, xs)
 
 runReadM :: MonadP m => ReadM a -> String -> m a
 runReadM (ReadM r) s = hoistEither . runExcept $ runReaderT r s

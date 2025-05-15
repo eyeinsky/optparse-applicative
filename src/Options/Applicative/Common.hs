@@ -55,7 +55,7 @@ import Control.Applicative
 import Control.Monad (guard, mzero, msum, when)
 import Control.Monad.Trans.Class (lift)
 import Control.Monad.Trans.State (StateT(..), get, put, runStateT)
-import Data.List (isPrefixOf)
+import Data.List (isPrefixOf, uncons)
 import Data.Maybe (maybeToList, isJust, isNothing)
 import Prelude
 
