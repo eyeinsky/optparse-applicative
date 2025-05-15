@@ -7,6 +7,7 @@ module Options.Applicative.Help.Core (
   globalDesc,
   ParserHelp(..),
   parserHelp,
+  parserHelpChunkDoc,
   parserUsage,
   ) where
 
@@ -351,7 +352,10 @@ optionsDesc global pprefs p =
 
 -- | Generate the help text for a program.
 parserHelp :: ParserPrefs -> Parser a -> ParserHelp
-parserHelp pprefs p = mempty { helpBody = vsepChunks $ fullDesc pprefs p : (group_title <$> cs) }
+parserHelp pprefs p = mempty { helpBody = parserHelpChunkDoc pprefs p }
+
+parserHelpChunkDoc :: ParserPrefs -> Parser a -> Chunk Doc
+parserHelpChunkDoc pprefs p = vsepChunks $ fullDesc pprefs p : (group_title <$> cs)
   where
     def = "Available commands:"
     cs = groupFstAll $ cmdDesc pprefs p
