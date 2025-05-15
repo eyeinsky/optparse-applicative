@@ -14,7 +14,6 @@ module Options.Applicative.Internal
 
   , Completion
   , runCompletion
-  , contextNames
 
   , ListT
   , takeListT
@@ -71,11 +70,6 @@ instance Monad P where
 instance MonadPlus P where
   mzero = P mzero
   mplus (P x) (P y) = P $ mplus x y
-
-contextNames :: [Context] -> [String]
-contextNames ns =
-  let go (Context n _) = n
-  in  reverse $ go <$> ns
 
 instance MonadP P where
   enterContext name pinfo = P $ lift $ modify $ (:) $ Context name pinfo

@@ -170,9 +170,10 @@ parserFailure :: ParserPrefs -> ParserInfo a
               -> ParseError -> [Context]
               -> ParserFailure ParserHelp
 parserFailure pprefs pinfo msg ctx0 = ParserFailure $ \progn ->
-  let h = with_context ctx pinfo $ \names pinfo' -> mconcat
+  let ctxNames = reverse $ map (\(Context n _) -> n) ctx
+      h = with_context ctx pinfo $ \pinfo' -> mconcat
             [ base_help pinfo'
-            , usage_help progn names pinfo'
+            , usage_help progn ctxNames pinfo'
             , suggestion_help
             , globals ctx
             , error_help ]
@@ -183,7 +184,7 @@ parserFailure pprefs pinfo msg ctx0 = ParserFailure $ \progn ->
     -- a valid command.
     ctx = case msg of
       ShowHelpText (Just potentialCommand) ->
-        let ctx1 = with_context ctx0 pinfo $ \_ pinfo' ->
+        let ctx1 = with_context ctx0 pinfo $ \pinfo' ->
               snd
                 $ flip runP defaultPrefs { prefBacktrack = SubparserInline }
                 $ runParserStep (infoPolicy pinfo') (infoParser pinfo') potentialCommand []
@@ -200,12 +201,9 @@ parserFailure pprefs pinfo msg ctx0 = ParserFailure $ \progn ->
       ShowHelpText {}    -> ExitSuccess
       InfoMsg {}         -> ExitSuccess
 
-    with_context :: [Context]
-                 -> ParserInfo a
-                 -> (forall b . [String] -> ParserInfo b -> c)
-                 -> c
-    with_context [] i f = f [] i
-    with_context c@(Context _ i:_) _ f = f (contextNames c) i
+    with_context :: [Context] -> ParserInfo a -> (forall b . ParserInfo b -> c) -> c
+    with_context []              i f = f i
+    with_context (Context _ i:_) _ f = f i
 
     globals :: [Context] -> ParserHelp
     globals cs =
