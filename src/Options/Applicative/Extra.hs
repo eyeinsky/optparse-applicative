@@ -13,7 +13,6 @@ module Options.Applicative.Extra (
   getParseResult,
   handleParseResult,
   parserFailure,
-  renderFailure,
   ParserFailure(..),
   overFailure,
   ParserResult(..),
@@ -28,7 +27,7 @@ import Data.Foldable (traverse_)
 import Prelude
 import System.Environment (getArgs, getProgName)
 import System.Exit (exitSuccess, exitWith, ExitCode(..))
-import System.IO (hPutStrLn, stderr)
+import System.IO (hPutStrLn, stdout, stderr)
 
 import Options.Applicative.BashCompletion
 import Options.Applicative.Builder
@@ -125,10 +124,9 @@ handleParseResult :: ParserResult a -> IO a
 handleParseResult (Success a) = return a
 handleParseResult (Failure failure) = do
       progn <- getProgName
-      let (msg, exit) = renderFailure failure progn
-      case exit of
-        ExitSuccess -> putStrLn msg
-        _           -> hPutStrLn stderr msg
+      let (h, exit, cols) = execFailure failure progn
+          handle = case exit of ExitSuccess -> stdout; _ -> stderr
+      hPutStrLn handle $ renderHelp cols h
       exitWith exit
 handleParseResult (CompletionInvoked compl) = do
       progn <- getProgName
@@ -340,8 +338,3 @@ parserFailure pprefs pinfo msg ctx0 = ParserFailure $ \progn ->
                                -> True
       InfoMsg _                -> False
       _                        -> prefShowHelpOnError pprefs
-
-renderFailure :: ParserFailure ParserHelp -> String -> (String, ExitCode)
-renderFailure failure progn =
-  let (h, exit, cols) = execFailure failure progn
-  in (renderHelp cols h, exit)

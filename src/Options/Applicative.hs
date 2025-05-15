@@ -180,7 +180,6 @@ module Options.Applicative (
   getParseResult,
   handleParseResult,
   parserFailure,
-  renderFailure,
   overFailure,
 
   -- ** 'ParserPrefs'
