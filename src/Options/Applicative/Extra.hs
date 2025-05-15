@@ -169,16 +169,21 @@ execParserPure pprefs pinfo args =
 parserFailure :: ParserPrefs -> ParserInfo a
               -> ParseError -> [Context]
               -> ParserFailure ParserHelp
-parserFailure pprefs pinfo msg ctx0 = ParserFailure $ \progn ->
-  let ctxNames = reverse $ map (\(Context n _) -> n) ctx
-      h = with_context ctx pinfo $ \pinfo' -> mconcat
-            [ base_help pinfo'
-            , usage_help progn ctxNames pinfo'
-            , suggestion_help
-            , globals ctx
-            , error_help ]
-  in (h, exit_code, prefColumns pprefs)
+parserFailure pprefs pinfo msg ctx0 = ParserFailure $ \progn -> parserFailureF pprefs pinfo msg ctx0 progn
+
+
+parserFailureF :: ParserPrefs -> ParserInfo a
+              -> ParseError -> [Context]
+              -> String -> (ParserHelp, ExitCode, Int)
+parserFailureF pprefs pinfo msg ctx0 progn = (help_, exit_code, prefColumns pprefs)
   where
+    help_ = with_context ctx pinfo $ \pinfo' -> mconcat
+      [ base_help pinfo'
+      , usage_help pinfo'
+      , suggestion_help
+      , globals
+      , error_help ]
+
     --
     -- Add another context layer if the argument to --help is
     -- a valid command.
@@ -205,25 +210,18 @@ parserFailure pprefs pinfo msg ctx0 = ParserFailure $ \progn ->
     with_context []              i f = f i
     with_context (Context _ i:_) _ f = f i
 
-    globals :: [Context] -> ParserHelp
-    globals cs =
-      let
-        voided =
-          fmap (\(Context _ p) -> void p) cs `mappend` pure (void pinfo)
+    globals :: ParserHelp
+    globals = if prefHelpShowGlobal pprefs
+      then let voided = map (\(Context _ p) -> void p) ctx <> [void pinfo]
+               globalParsers = traverse_ infoParser $ drop 1 voided
+        in mempty { helpGlobals = globalDesc pprefs globalParsers }
+      else mempty
 
-        globalParsers =
-          traverse_ infoParser $
-            drop 1 voided
-      in
-        if prefHelpShowGlobal pprefs then
-          mempty { helpGlobals = globalDesc pprefs globalParsers }
-        else
-          mempty
-
-    usage_help progn names i = case msg of
+    usage_help i = case msg of
       InfoMsg _ -> mempty
       _         -> mempty
-           { helpUsage = pure . parserUsage pprefs (infoParser i) . unwords $ progn : names
+           { helpUsage = let ctxNames = reverse $ map (\(Context n _) -> n) ctx
+               in pure $ parserUsage pprefs (infoParser i) $ unwords $ progn : ctxNames
            , helpDescription = infoProgDesc i
            }
 
@@ -321,18 +319,16 @@ parserFailure pprefs pinfo msg ctx0 = ParserFailure $ \progn ->
         -> mempty
 
     base_help :: ParserInfo a -> ParserHelp
-    base_help i
-      | show_full_help
-      = mconcat [h, f, parserHelp pprefs (infoParser i)]
-      | otherwise
-      = mempty
+    base_help i = if show_full_help
+      then mempty
+           { helpHeader = infoHeader i
+           , helpFooter = infoFooter i
+           , helpBody = parserHelpChunkDoc pprefs (infoParser i) }
+      else mempty
       where
-        h = mempty { helpHeader = infoHeader i }
-        f = mempty { helpFooter = infoFooter i }
-
-    show_full_help = case msg of
-      ShowHelpText {}          -> True
-      MissingError CmdStart  _  | prefShowHelpOnEmpty pprefs
-                               -> True
-      InfoMsg _                -> False
-      _                        -> prefShowHelpOnError pprefs
+        show_full_help = case msg of
+          ShowHelpText {}          -> True
+          MissingError CmdStart  _  | prefShowHelpOnEmpty pprefs
+                                   -> True
+          InfoMsg _                -> False
+          _                        -> prefShowHelpOnError pprefs
