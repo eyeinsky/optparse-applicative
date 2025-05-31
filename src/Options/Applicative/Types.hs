@@ -56,7 +56,6 @@ import Control.Monad.Trans.Except (Except, throwE)
 import Control.Monad.Trans.Class (lift)
 import Control.Monad.Trans.Reader (ReaderT, ask)
 import qualified Control.Monad.Fail as Fail
-import Data.Semigroup hiding (Option)
 import Prelude
 
 import System.Exit (ExitCode(..))

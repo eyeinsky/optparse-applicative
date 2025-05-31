@@ -19,10 +19,9 @@ import qualified Examples.ParserGroup.Nested as ParserGroup.Nested
 
 import           Control.Applicative
 import           Control.Monad
-import           Data.Function (on)
 import           Data.List hiding (group)
 import           Data.List.NonEmpty (NonEmpty ((:|)))
-import           Data.Semigroup hiding (option)
+import           Data.Semigroup
 import           Data.String
 
 import           System.Exit

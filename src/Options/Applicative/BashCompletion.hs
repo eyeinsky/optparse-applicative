@@ -13,7 +13,6 @@ module Options.Applicative.BashCompletion
 
 import Control.Applicative
 import Prelude
-import Data.Foldable ( asum )
 import Data.List ( isPrefixOf )
 import Data.Maybe ( fromMaybe, listToMaybe )
 
