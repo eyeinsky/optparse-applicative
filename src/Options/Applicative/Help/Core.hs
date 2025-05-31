@@ -42,41 +42,49 @@ safelast = foldl' (const Just) Nothing
 -- | Generate description for a single option.
 optDesc :: ParserPrefs -> OptDescStyle -> ArgumentReachability -> Option a -> (OptGroup, Chunk Doc, Parenthetic)
 optDesc pprefs style _reachability opt =
-  let names =
-        List.sort . optionNames . optMain $ opt
-      meta =
-        stringChunk $ optMetaVar opt
+  let names :: [OptName]
+      names = List.sort . optionNames . optMain $ opt
+
+      meta :: Chunk Doc
+      meta = pretty $ optMetaVar opt
+
+      grp :: OptGroup
       grp = propGroup $ optProps opt
-      descs =
-        map (pretty . showOption) names
-      descriptions =
-        listToChunk (List.intersperse (descSep style) descs)
+
+      descs :: [Doc]
+      descs = map (pretty . showOption) names
+
+      descriptions :: Chunk Doc
+      descriptions = mconcat (List.intersperse (descSep style) descs)
+
+      desc :: Chunk Doc
       desc
         | prefHelpLongEquals pprefs && not (isEmpty meta) && any isLongName (safelast names) =
-          descriptions <> stringChunk "=" <> meta
-        | otherwise =
-          descriptions <<+>> meta
+          descriptions <> pretty "=" <> meta
+        | otherwise = descriptions <+> meta
+
+      show_opt :: Bool
       show_opt
-        | descGlobal style && not (propShowGlobal (optProps opt)) =
-          False
-        | optVisibility opt == Hidden =
-          descHidden style
-        | otherwise =
-          optVisibility opt == Visible
+        | descGlobal style && not (propShowGlobal (optProps opt))
+                                      = False
+        | optVisibility opt == Hidden = descHidden style
+        | otherwise                   = optVisibility opt == Visible
+
+      wrapping :: Parenthetic
       wrapping
-        | null names =
-          NeverRequired
-        | length names == 1 =
-          MaybeRequired
-        | otherwise =
-          AlwaysRequired
+        | null names        = NeverRequired
+        | length names == 1 = MaybeRequired
+        | otherwise         = AlwaysRequired
+
+      rendered :: Chunk Doc
       rendered
         | not show_opt =
           mempty
         | otherwise =
           desc
-      modified =
-        maybe id fmap (optDescMod opt) rendered
+
+      modified :: Chunk Doc
+      modified = maybe rendered ($ rendered) (optDescMod opt)
    in (grp, modified, wrapping)
 
 -- | Generate descriptions for commands.
@@ -88,7 +96,7 @@ cmdDesc pprefs = mapParser desc
         CmdReader gn cmds ->
           (,) gn $
             tabulate (prefTabulateFill pprefs)
-              [ (pretty nm, align (extractChunk (infoProgDesc cmd)))
+              [ (pretty nm, align (infoProgDesc cmd))
               | (nm, cmd) <- reverse cmds
               ]
         _ -> mempty
@@ -131,12 +139,9 @@ briefDesc' showOptional pprefs =
 -- | Wrap a doc in parentheses or brackets if required.
 wrapOver :: AltNodeType -> Parenthetic -> (Chunk Doc, Parenthetic) -> Chunk Doc
 wrapOver altnode mustWrapBeyond (chunk, wrapping)
-  | altnode == MarkDefault =
-    fmap brackets chunk
-  | wrapping > mustWrapBeyond =
-    fmap parens chunk
-  | otherwise =
-    chunk
+  | altnode == MarkDefault    = brackets chunk
+  | wrapping > mustWrapBeyond = parens chunk
+  | otherwise                 = chunk
 
 -- Fold a tree of option docs into a single doc with fully marked
 -- optional areas and groups.
@@ -145,7 +150,7 @@ foldTree _ _ (Leaf x) =
   x
 foldTree prefs s (MultNode xs) =
   let go =
-        (<</>>) . wrapOver NoDefault MaybeRequired . foldTree prefs s
+        (</>) . wrapOver NoDefault MaybeRequired . foldTree prefs s
       x =
         foldr go mempty xs
       wrapLevel =
@@ -156,7 +161,7 @@ foldTree prefs s (MultNode xs) =
     multi_wrap _ = MaybeRequired
 foldTree prefs s (AltNode b xs) =
   (\x -> (x, NeverRequired))
-    . fmap groupOrNestLine
+    . groupOrNestLine
     . wrapOver b MaybeRequired
     . alt_node
     . filter (not . isEmpty . fst)
@@ -167,16 +172,16 @@ foldTree prefs s (AltNode b xs) =
     alt_node [n] = n
     alt_node ns =
       (\y -> (y, AlwaysRequired))
-        . foldr (chunked altSep . wrapOver NoDefault MaybeRequired) mempty
+        . foldr (altSep . wrapOver NoDefault MaybeRequired) mempty
         $ ns
 foldTree prefs s (BindNode x) =
   let rendered =
-        wrapOver NoDefault NeverRequired (foldTree prefs s x)
+        wrapOver NoDefault NeverRequired (foldTree prefs s x) :: Chunk Doc
 
       -- We always want to display the rendered option
       -- if it exists, and only attach the suffix then.
-      withSuffix =
-        rendered >>= (\r -> pure r <> stringChunk (prefMultiSuffix prefs))
+      withSuffix = maybeChunk rendered (<> pretty (prefMultiSuffix prefs)) rendered
+
    in (withSuffix, NeverRequired)
 
 -- | Generate a full help text for a parser
@@ -259,7 +264,7 @@ optionsDesc global pprefs p =
     formatTitle (printedGroups, acc) o@(OptGroup groups, opts) =
       case parentGroups of
         -- No nested groups: No special logic.
-        [] -> (groupTitle : printedGroups, ((\d -> pretty groupTitle .$. d) <$> opts) : acc)
+        [] -> (groupTitle : printedGroups, (pretty groupTitle .$. opts) : acc)
         -- We have at least one parent group title P for current group G: P has
         -- already been printed iff it is attached to another (non-grouped)
         -- option. In other words, P has __not__ been printed if its only
@@ -278,12 +283,10 @@ optionsDesc global pprefs p =
               parentsWithIndent = zip [0 .. ] parents
 
               -- docs for unprinted parent title groups
-              parentDocs = pure $ mkParentDocs printedGroups parentsWithIndent
+              parentDocs = mkParentDocs printedGroups parentsWithIndent
 
               -- docs for the current group
-              thisDocs =
-                (\d -> lvlIndentNSub1 groupLvl $ (hyphenate groupTitle) .$. indentOpts d)
-                  <$> opts
+              thisDocs = lvlIndentNSub1 groupLvl $ (hyphenate groupTitle) .$. indentOpts opts
 
               allDocs = parentDocs <> thisDocs
 
@@ -317,11 +320,11 @@ optionsDesc global pprefs p =
     doc info opt = do
       guard . not . isEmpty $ n
       guard . not . isEmpty $ h
-      return (grp, (extractChunk n, align . extractChunk $ h <</>> hdef))
+      return (grp, (n, align $ h </> hdef))
       where
         (grp, n, _) = optDesc pprefs style info opt
         h = optHelp opt
-        hdef = Chunk . fmap show_def . optShowDefault $ opt
+        hdef = maybe emptyDoc show_def $ optShowDefault opt :: Doc
         show_def s = parens (pretty "default:" <+> pretty s)
     style = OptDescStyle
       { descSep = pretty ',',
@@ -366,7 +369,7 @@ parserHelpChunkDoc pprefs p = vsepChunks $ fullDesc pprefs p : (group_title <$> 
     group_title _ = mempty
 
     with_title :: String -> Chunk Doc -> Chunk Doc
-    with_title title = fmap (pretty title .$.)
+    with_title title doc = pretty title .$. doc
 
 -- | Generate option summary.
 parserUsage :: ParserPrefs -> Parser a -> String -> Doc
@@ -375,7 +378,7 @@ parserUsage pprefs p progn =
     hsep
       [ pretty "Usage:",
         pretty progn,
-        hangAtIfOver 9 (prefBriefHangPoint pprefs) (extractChunk (briefDesc pprefs p))
+        hangAtIfOver 9 (prefBriefHangPoint pprefs) (briefDesc pprefs p)
       ]
 
 -- | Peek at the structure of the rendered tree within.

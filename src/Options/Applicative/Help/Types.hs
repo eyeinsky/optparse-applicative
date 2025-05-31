@@ -36,8 +36,7 @@ instance Semigroup ParserHelp where
 
 helpText :: ParserHelp -> Doc
 helpText (ParserHelp e s h u d b g f) =
-  extractChunk $
-    vsepChunks [e, s, h, u, fmap (indent 2) d, b, g, f]
+  vsepChunks [e, s, h, u, indent 2 d, b, g, f]
 
 -- | Convert a help text to 'String'.
 renderHelp :: Int -> ParserHelp -> String

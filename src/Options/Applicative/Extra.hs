@@ -223,7 +223,7 @@ parserFailureF pprefs pinfo msg ctx0 progn = (help_, exit_code, prefColumns ppre
       InfoMsg _ -> mempty
       _         -> mempty
            { helpUsage = let ctxNames = reverse $ map (\(Context n _) -> n) ctx
-               in pure $ parserUsage pprefs (infoParser i) $ unwords $ progn : ctxNames
+               in parserUsage pprefs (infoParser i) $ unwords $ progn : ctxNames
            , helpDescription = infoProgDesc i
            }
 
@@ -233,23 +233,23 @@ parserFailureF pprefs pinfo msg ctx0 progn = (help_, exit_code, prefColumns ppre
         -> mempty
 
       ErrorMsg m
-        -> stringChunk m
+        -> pretty m
 
       InfoMsg  m
-        -> stringChunk m
+        -> pretty m
 
       MissingError CmdStart _
         | prefShowHelpOnEmpty pprefs
         -> mempty
 
       MissingError _ (SomeParser x)
-        -> stringChunk "Missing:" <<+>> missingDesc pprefs x
+        -> pretty "Missing:" <+> missingDesc pprefs x
 
       ExpectsArgError x
-        -> stringChunk $ "The option `" ++ x ++ "` expects an argument."
+        -> pretty $ "The option `" ++ x ++ "` expects an argument."
 
       UnexpectedError arg _
-        -> stringChunk msg'
+        -> pretty msg'
           where
             --
             -- This gives us the same error we have always
@@ -278,30 +278,34 @@ parserFailureF pprefs pinfo msg ctx0 progn = (help_, exit_code, prefColumns ppre
             -- Not using chunked here, as we don't want to
             -- show "Did you mean" if there's nothing there
             -- to show
-            suggestions = (.$.) <$> prose
-                                <*> (indent 4 <$> (vcatChunks . fmap stringChunk $ good ))
+            suggestions :: Chunk Doc
+            suggestions = prose .$. (indent 4 $ vcatChunks $ fmap pretty good)
 
             --
             -- We won't worry about the 0 case, it won't be
             -- shown anyway.
+            prose :: Chunk Doc
             prose       = if length good < 2 then
-                            stringChunk "Did you mean this?"
+                            pretty "Did you mean this?"
                           else
-                            stringChunk "Did you mean one of these?"
+                            pretty "Did you mean one of these?"
             --
             -- Suggestions we will show, they're close enough
             -- to what the user wrote
+            good :: [String]
             good        = filter isClose possibles
 
             --
             -- Bit of an arbitrary decision here.
             -- Edit distances of 1 or 2 will give hints
+            isClose :: String -> Bool
             isClose a   = editDistance a arg < 3
 
             --
             -- Similar to how bash completion works.
             -- We map over the parser and get the names
             -- ( no IO here though, unlike for completers )
+            possibles :: [String]
             possibles   = concat $ mapParser opt_completions x
 
             --

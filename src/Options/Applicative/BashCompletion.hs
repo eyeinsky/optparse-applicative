@@ -127,8 +127,8 @@ bashCompletionQuery pinfo pprefs richness ws i _ = case runCompletion compl ppre
         id
       Enriched len _ ->
         fmap $ \o ->
-          let h = unChunk $ optHelp opt
-          in  maybe o (\h' -> o ++ "\t" ++ render_line len h') h
+          let h = optHelp opt
+          in  maybeChunk o (\h' -> o ++ "\t" ++ render_line len h') h
 
     -- When doing enriched completions, add the command description
     -- to the completion variables (tab separated).
@@ -139,8 +139,8 @@ bashCompletionQuery pinfo pprefs richness ws i _ = case runCompletion compl ppre
           fmap fst
         Enriched _ len ->
           fmap $ \(cmd, cmdInfo) ->
-            let h = unChunk (infoProgDesc cmdInfo)
-            in  maybe cmd (\h' -> cmd ++ "\t" ++ render_line len h') h
+            let h = infoProgDesc cmdInfo
+            in  maybeChunk cmd (\h' -> cmd ++ "\t" ++ render_line len h') h
 
     show_names :: [OptName] -> [String]
     show_names = filter is_completion . map showOption

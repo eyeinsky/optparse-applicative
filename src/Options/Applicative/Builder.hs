@@ -168,8 +168,8 @@ help s = optionMod $ \p -> p { propHelp = paragraph s }
 
 -- | Specify the help text for an option as a 'Prettyprinter.Doc AnsiStyle'
 -- value.
-helpDoc :: Maybe Doc -> Mod f a
-helpDoc doc = optionMod $ \p -> p { propHelp = Chunk doc }
+helpDoc :: Doc -> Mod f a
+helpDoc doc = optionMod $ \p -> p { propHelp = doc }
 
 -- | Specify the error to display when no argument is provided to this option.
 noArgError :: ParseError -> Mod OptionFields a
