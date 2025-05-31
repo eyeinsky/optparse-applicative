@@ -1,6 +1,9 @@
 {-# LANGUAGE StandaloneDeriving         #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
 {-# LANGUAGE TemplateHaskell            #-}
+{-# LANGUAGE TypeSynonymInstances       #-}
+{-# LANGUAGE FlexibleInstances          #-}
+{-# LANGUAGE UndecidableInstances       #-}
 {-# OPTIONS_GHC -fno-warn-orphans       #-}
 module Main where
 
@@ -819,7 +822,7 @@ prop_grouped_some_option_ellipsis = once $
   let x :: Parser String
       x = strOption (short 'x' <> metavar "X")
       p = defaultPrefs { prefMultiSuffix = "..." }
-      r = show . extractChunk $ H.briefDesc p (x *> some x)
+      r = show $ H.briefDesc p (x *> some x)
   in r === "-x X (-x X)..."
 
 prop_grouped_many_option_ellipsis :: Property
@@ -827,7 +830,7 @@ prop_grouped_many_option_ellipsis = once $
   let x :: Parser String
       x = strOption (short 'x' <> metavar "X")
       p = defaultPrefs { prefMultiSuffix = "..." }
-      r = show . extractChunk $ H.briefDesc p (x *> many x)
+      r = show $ H.briefDesc p (x *> many x)
   in r === "-x X [-x X]..."
 
 prop_grouped_some_argument_ellipsis :: Property
@@ -835,7 +838,7 @@ prop_grouped_some_argument_ellipsis = once $
   let x :: Parser String
       x = strArgument (metavar "X")
       p = defaultPrefs { prefMultiSuffix = "..." }
-      r = show . extractChunk $ H.briefDesc p (x *> some x)
+      r = show $ H.briefDesc p (x *> some x)
   in r === "X X..."
 
 prop_grouped_many_argument_ellipsis :: Property
@@ -843,7 +846,7 @@ prop_grouped_many_argument_ellipsis = once $
   let x :: Parser String
       x = strArgument (metavar "X")
       p = defaultPrefs { prefMultiSuffix = "..." }
-      r = show . extractChunk $ H.briefDesc p (x *> many x)
+      r = show $ H.briefDesc p (x *> many x)
   in r === "X [X]..."
 
 prop_grouped_some_pairs_argument_ellipsis :: Property
@@ -851,7 +854,7 @@ prop_grouped_some_pairs_argument_ellipsis = once $
   let x :: Parser String
       x = strArgument (metavar "X")
       p = defaultPrefs { prefMultiSuffix = "..." }
-      r = show . extractChunk $ H.briefDesc p (x *> some (x *> x))
+      r = show $ H.briefDesc p (x *> some (x *> x))
   in r === "X (X X)..."
 
 prop_grouped_many_pairs_argument_ellipsis :: Property
@@ -859,7 +862,7 @@ prop_grouped_many_pairs_argument_ellipsis = once $
   let x :: Parser String
       x = strArgument (metavar "X")
       p = defaultPrefs { prefMultiSuffix = "..." }
-      r = show . extractChunk $ H.briefDesc p (x *> many (x *> x))
+      r = show $ H.briefDesc p (x *> many (x *> x))
   in r === "X [X X]..."
 
 prop_grouped_some_dual_option_ellipsis :: Property
@@ -867,7 +870,7 @@ prop_grouped_some_dual_option_ellipsis = once $
   let x :: Parser String
       x = strOption (short 'a' <> short 'b' <> metavar "X")
       p = defaultPrefs { prefMultiSuffix = "..." }
-      r = show . extractChunk $ H.briefDesc p (x *> some x)
+      r = show $ H.briefDesc p (x *> some x)
   in r === "(-a|-b X) (-a|-b X)..."
 
 prop_grouped_many_dual_option_ellipsis :: Property
@@ -875,35 +878,35 @@ prop_grouped_many_dual_option_ellipsis = once $
   let x :: Parser String
       x = strOption (short 'a' <> short 'b' <> metavar "X")
       p = defaultPrefs { prefMultiSuffix = "..." }
-      r = show . extractChunk $ H.briefDesc p (x *> many x)
+      r = show $ H.briefDesc p (x *> many x)
   in r === "(-a|-b X) [-a|-b X]..."
 
 prop_grouped_some_dual_flag_ellipsis :: Property
 prop_grouped_some_dual_flag_ellipsis = once $
   let x = flag' () (short 'a' <> short 'b')
       p = defaultPrefs { prefMultiSuffix = "..." }
-      r = show . extractChunk $ H.briefDesc p (x *> some x)
+      r = show $ H.briefDesc p (x *> some x)
   in r === "(-a|-b) (-a|-b)..."
 
 prop_grouped_many_dual_flag_ellipsis :: Property
 prop_grouped_many_dual_flag_ellipsis = once $
   let x = flag' () (short 'a' <> short 'b')
       p = defaultPrefs { prefMultiSuffix = "..." }
-      r = show . extractChunk $ H.briefDesc p (x *> many x)
+      r = show $ H.briefDesc p (x *> many x)
   in r === "(-a|-b) [-a|-b]..."
 
 prop_issue_402 :: Property
 prop_issue_402 = once $
   let x = some (flag' () (short 'a')) <|> some (flag' () (short 'b' <> internal))
       p = defaultPrefs { prefMultiSuffix = "..." }
-      r = show . extractChunk $ H.briefDesc p x
+      r = show $ H.briefDesc p x
   in r === "(-a)..."
 
 prop_nice_some1 :: Property
 prop_nice_some1 = once $
   let x = Options.Applicative.NonEmpty.some1 (flag' () (short 'a'))
       p = defaultPrefs { prefMultiSuffix = "..." }
-      r = show . extractChunk $ H.briefDesc p x
+      r = show $ H.briefDesc p x
   in r === "(-a)..."
 
 prop_some1_works :: Property
@@ -975,32 +978,32 @@ prop_parser_group_nested = once $
 
 ---
 
-deriving instance Arbitrary a => Arbitrary (Chunk a)
+-- deriving instance Arbitrary a => Arbitrary (Chunk a)
 
 
 equalDocs :: Double -> Int -> Doc -> Doc -> Property
 equalDocs f w d1 d2 = Doc.prettyString f w d1
                   === Doc.prettyString f w d2
 
-prop_listToChunk_1 :: [String] -> Property
-prop_listToChunk_1 xs = isEmpty (listToChunk xs) === null xs
+-- prop_listToChunk_1 :: [String] -> Property
+-- prop_listToChunk_1 xs = isEmpty (mconcat $ map Doc.pretty xs) === null xs
 
-prop_listToChunk_2 :: [String] -> Property
-prop_listToChunk_2 xs = listToChunk xs === mconcat (fmap pure xs)
+-- prop_listToChunk_2 :: [String] -> Property
+-- prop_listToChunk_2 xs = mconcat xs === mconcat (fmap pure xs)
 
-prop_extractChunk_1 :: String -> Property
-prop_extractChunk_1 x = extractChunk (pure x) === x
+-- prop_extractChunk_1 :: String -> Property
+-- prop_extractChunk_1 x = pure x === x
 
-prop_extractChunk_2 :: Chunk String -> Property
-prop_extractChunk_2 x = extractChunk (fmap pure x) === x
+-- prop_extractChunk_2 :: Chunk String -> Property
+-- prop_extractChunk_2 x = fmap pure x === x
 
-prop_stringChunk_1 :: Positive Double -> Positive Int -> String -> Property
-prop_stringChunk_1 (Positive f) (Positive w) s =
-  equalDocs f w (extractChunk (stringChunk s))
-                (Doc.pretty s)
+-- prop_stringChunk_1 :: Positive Double -> Positive Int -> String -> Property
+-- prop_stringChunk_1 (Positive f) (Positive w) s =
+--   equalDocs f w (Doc.pretty s)
+--                 (Doc.pretty s)
 
-prop_stringChunk_2 :: String -> Property
-prop_stringChunk_2 s = isEmpty (stringChunk s) === null s
+-- prop_stringChunk_2 :: String -> Property
+-- prop_stringChunk_2 s = isEmpty (Doc.pretty s) === null s
 
 prop_paragraph :: String -> Property
 prop_paragraph s = isEmpty (paragraph s) === null (words s)
